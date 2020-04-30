@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import { resolve } from "path";
 
-import easyDB, { Data } from "@easy-db/core";
+import easyDB, { Data } from "easy-db-core";
 
 const folderDB = "easy-db";
 

@@ -1,5 +1,5 @@
 {
-    "name": "@easy-db/core",
+    "name": "easy-db-core",
     "version": "1.0.0",
     "description": "Core for Lite&easy database.",
     "main": "./lib/index.js",

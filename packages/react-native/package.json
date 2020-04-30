@@ -1,5 +1,5 @@
 {
-    "name": "@easy-db/react-native",
+    "name": "easy-db-react-native",
     "version": "1.0.0",
     "description": "Lite&easy database for react-native.",
     "main": "./lib/index.js",
@@ -19,7 +19,7 @@
         "typescript": "^3.8.3"
     },
     "dependencies": {
-        "@easy-db/core": "^1.0.0",
+        "easy-db-core": "^1.0.0",
         "@react-native-community/async-storage": "^1.9.0"
     },
     "keywords": [

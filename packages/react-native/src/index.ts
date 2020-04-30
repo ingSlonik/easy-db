@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-community/async-storage';
 
-import easyDB, { Data } from "@easy-db/core";
+import easyDB, { Data } from "easy-db-core";
 
 const prefix = "@easy-db:";
 

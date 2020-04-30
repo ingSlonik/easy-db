@@ -1,4 +1,4 @@
-import easyDB, { Data } from "@easy-db/core";
+import easyDB, { Data } from "easy-db-core";
 
 const prefix = "easy-db-";
 

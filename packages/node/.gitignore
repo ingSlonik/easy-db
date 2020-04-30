@@ -1,0 +1,5 @@
+lib/
+easy-db/
+node_modules/
+.npmrc
+package-lock.json

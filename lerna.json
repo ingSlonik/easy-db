@@ -1,0 +1,13 @@
+{
+  "version": "0.1.2",
+  "changelog": {
+    "repo": "babel/babel",
+    "cacheDir": ".changelog"
+  },
+  "packages": [
+    "packages/*"
+  ],
+  "npmClientArgs": [
+    "--no-lockfile"
+  ]
+}

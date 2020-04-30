@@ -1,0 +1,22 @@
+{
+  "name": "easy-db",
+  "description": "Lite&easy database for all JavaScript environments.",
+  "private": true,
+  "scripts": {
+    "test": "lerna run test",
+    "bootstrap": "lerna bootstrap",
+    "version": "lerna version",
+    "publish": "lerna publish"
+  },
+  "devDependencies": {
+    "@react-native-community/async-storage": "^1.9.0",
+    "@types/chai": "^4.2.11",
+    "@types/mocha": "^7.0.2",
+    "@types/node": "^13.13.4",
+    "chai": "^4.2.0",
+    "lerna": "^3.20.2",
+    "mocha": "^7.1.2",
+    "ts-node": "^8.9.1",
+    "typescript": "^3.8.3"
+  }
+}

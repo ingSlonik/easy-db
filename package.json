@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "test": "lerna run test",
+    "build": "lerna run build",
     "bootstrap": "lerna bootstrap",
     "version": "lerna version",
     "publish": "lerna publish"

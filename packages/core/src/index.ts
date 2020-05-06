@@ -4,7 +4,9 @@ type CollectionConfiguration = {
     lastId: number,
 };
 
-export type Data = { [id: string]: any };
+export type Id = string;
+export type Row = any;
+export type Data = { [id: string]: Row };
 
 export type Backend = {
     saveCollection: (name: string, data: Data) => Promise<void>,
@@ -62,13 +64,13 @@ async function setData(backend: Backend, collectionName: string, data: Data): Pr
 
 // API
 
-async function insert(backend: Backend, collection: string, row: any): Promise<number> {
+async function insert(backend: Backend, collection: string, row: Row): Promise<Id> {
     easyDBQueue = queue(easyDBQueue, async () => {
         const configuration = await getConfiguration(backend, collection);
         const wholeCollection = await getData(backend, collection);
 
         const newId = configuration.lastId + 1;
-        wholeCollection[newId] = row;
+        wholeCollection[String(newId)] = row;
         await setConfiguration(backend, collection, { ...configuration, lastId: newId });
         await setData(backend, collection, wholeCollection);
 
@@ -78,7 +80,7 @@ async function insert(backend: Backend, collection: string, row: any): Promise<n
     return await easyDBQueue;
 }
 
-async function select(backend: Backend, collection: string, id: null | number): Promise<any> {
+async function select(backend: Backend, collection: string, id: null | Id): Promise<any> {
     easyDBQueue = queue(easyDBQueue, async () => {
         const wholeCollection = await getData(backend, collection);
 
@@ -96,7 +98,7 @@ async function select(backend: Backend, collection: string, id: null | number): 
     return await easyDBQueue;
 }
 
-async function update(backend: Backend, collection: string, id: number, row: any) {
+async function update(backend: Backend, collection: string, id: Id, row: Row) {
     easyDBQueue = queue(easyDBQueue, async () => {
         const wholeCollection = await getData(backend, collection);
         wholeCollection[id] = row;
@@ -106,7 +108,7 @@ async function update(backend: Backend, collection: string, id: number, row: any
     return await easyDBQueue;
 }
 
-async function remove(backend: Backend, collection: string, id: number) {
+async function remove(backend: Backend, collection: string, id: Id) {
     easyDBQueue = queue(easyDBQueue, async () => {
         const wholeCollection = await getData(backend, collection);
 
@@ -122,16 +124,16 @@ async function remove(backend: Backend, collection: string, id: number) {
 
 export default (backend: Backend) => {
     return {
-        async insert(collection: string, row: any) {
+        async insert(collection: string, row: Row) {
             return await insert(backend, collection, row);
         }, 
-        async select(collection: string, id?: number) {
-            return await select(backend, collection, typeof id === "number" ? id : null);
+        async select(collection: string, id?: Id) {
+            return await select(backend, collection, typeof id === "string" ? id : null);
         },
-        async update(collection: string, id: number, row: any) {
+        async update(collection: string, id: Id, row: Row) {
             return await update(backend, collection, id, row);
         },
-        async remove(collection: string, id: number,) {
+        async remove(collection: string, id: Id) {
             return await remove(backend, collection, id);
         }, 
     };

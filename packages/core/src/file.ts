@@ -7,8 +7,6 @@
  * With updating or removing will take care to replacing this tag.
  */
 
-const isBase64 = require("is-base64");
-
 type Data = any;
 type FileTag = {
     type: "EASY_DB_FILE_TAG",
@@ -19,9 +17,8 @@ function isFileTag(data: Data): boolean {
     if (
         typeof data === "object"
         && data !== null
-        && "type" in data
-        && "replaced" in data
         && data.type === "EASY_DB_FILE_TAG"
+        && typeof data.replaced === "string"
     ) {
         return true;
     } else {
@@ -83,19 +80,25 @@ export async function removeUpdatedFiles(newData: Data, oldData: Data, remove: (
         } else {
             if (typeof newData === "object" && newData !== null) {
                 for (const key in oldData) {
-                    await removeUpdatedFiles(oldData[key], newData[key], remove);
+                    await removeUpdatedFiles(newData[key], oldData[key], remove);
                 }
             } else {
                 for (const key in oldData) {
-                    await removeUpdatedFiles(oldData[key], null, remove);
+                    await removeUpdatedFiles(null, oldData[key], remove);
                 }
             }
         }
     } else if (Array.isArray(oldData)) {
         if (Array.isArray(newData)) {
-            oldData.forEach(async (value, i) => await removeUpdatedFiles(value, newData[i], remove));
+            oldData.forEach(async (value, i) => await removeUpdatedFiles(newData[i], value, remove));
         } else {
-            oldData.forEach(async (value, i) => await removeUpdatedFiles(value, null, remove));
+            oldData.forEach(async (value, i) => await removeUpdatedFiles(null, value, remove));
         }
     }
+}
+
+// Source: https://github.com/miguelmota/is-base64/blob/master/is-base64.js
+const regexIsBase64 = new RegExp("^(data:\\w+\\/[a-zA-Z\\+\\-\\.]+;base64,)(?:[A-Za-z0-9+\\/]{4})*(?:[A-Za-z0-9+\\/]{2}==|[A-Za-z0-9+\/]{3}=)?$", "gi");
+function isBase64(base64: string): boolean {
+    return regexIsBase64.test(base64);
 }

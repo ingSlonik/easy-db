@@ -1,11 +1,16 @@
 # Easy DB for Node.js
 
 Lite&easy database for Node.js, based on `easy-db-code`.
-Not create any database structure, just use it.
 
-> I recommend use this tool exclusively for developing.
+> I recommend use this tool exclusively for developing or small projects.
 
 Include types for TypeScript.
+
+## Features
+
+- The same interface in Node, Web, Mobile, Server or your own environment.
+- Easy reading and updating database without any special tool.
+- Handling files directly in easy-db.
 
 ## API
 
@@ -29,13 +34,31 @@ await remove("collection1", idOfRow); // only one row
 ## Example of use
 
 ```js
-import { select, update } from "easy-db-react-native";
+import { select, update } from "easy-db-node";
 
 // Save nickname 
 await update("myAppName", "nickname", nickname);
 
 // Load nickname
 const nickname = await select("myAppName", "nickname");
+```
+
+### File saving as url
+```js
+import { select, update, configure } from "easy-db-node";
+
+configure({ fileFolder: "files", fileUrl: "/files" });
+
+// Save user with picture 
+await update("myAppName", "user", {
+    name: "Example User",
+    // any file in base64
+    photo: "data:image/png;base64,iVB...YI=",
+});
+
+// Load with picture
+const user = await select("myAppName", "user");
+// user = { name: "Example User", photo: "/files/1f6bef21.png" }
 ```
 
 ## Files

@@ -67,21 +67,22 @@ async function setData(backend: Backend, collectionName: string, data: Data): Pr
 
 // API
 
-async function insert(backend: Backend, collection: string, row: Row): Promise<string> {
+async function insert(backend: Backend, collection: string, row: Row): Promise<Id> {
     easyDBQueue = queue(easyDBQueue, async () => {
         const configuration = await getConfiguration(backend, collection);
         const wholeCollection = await getData(backend, collection);
 
         const newId = configuration.lastId + 1;
+        const newIdString = String(newId);
         if (typeof backend.saveFile === "function") {
-            wholeCollection[newId] = await replaceFileData(row, backend.saveFile);
+            wholeCollection[newIdString] = await replaceFileData(row, backend.saveFile);
         } else {
-            wholeCollection[newId] = row;
+            wholeCollection[newIdString] = row;
         }
         await setConfiguration(backend, collection, { ...configuration, lastId: newId });
         await setData(backend, collection, wholeCollection);
 
-        return newId;
+        return newIdString;
     });
 
     return await easyDBQueue;

@@ -15,7 +15,7 @@ describe('Easy DB', () => {
 
     it('insert', async () => {
         const id = await insert("test", { myFirst: 1 });
-        assert.equal(typeof id, "number");
+        assert.equal(typeof id, "string");
     });
 
     it('select all', async () => {

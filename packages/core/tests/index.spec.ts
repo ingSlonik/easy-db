@@ -24,7 +24,7 @@ describe('Easy DB Core', () => {
             async loadCollection(name: string): Promise<null | Data> { return null; },
         });
         const id = await easyDB.insert("test", { myFirst: 1 });
-        assert.equal(typeof id, "number");
+        assert.equal(typeof id, "string");
     });
 
     it('select all', async () => {

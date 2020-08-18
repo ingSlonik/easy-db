@@ -24,7 +24,7 @@ export const { insert, select, update, remove } = easyDB({
                     return null;
                 }
             } catch (e) {
-                // TODO: write inconsistent data
+                // TODO: save inconsistent data
                 return null;
             }
         } else {

@@ -1,8 +1,8 @@
-// @flow
-
 import { assert } from 'chai';
 
 import easyDBCore, { Data } from "../src/index";
+
+const DUMMY_FILE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
 
 describe('Easy DB Core', () => {
     it('create easy db', () => {
@@ -56,7 +56,7 @@ describe('Easy DB Core', () => {
             },
         });
 
-        const data = await easyDB.select("test", 1);
+        const data = await easyDB.select("test", "1");
         assert.equal(data, "Hi");
     });
 
@@ -68,7 +68,7 @@ describe('Easy DB Core', () => {
             },
             async loadCollection(name: string): Promise<null | Data> { return null; },
         });
-        const data = await easyDB.update("test", 1, "Hi");
+        const data = await easyDB.update("test", "1", "Hi");
     });
 
     it('remove', async () => {
@@ -92,6 +92,59 @@ describe('Easy DB Core', () => {
                 }
             },
         });
-        const data = await easyDB.remove("test", 1);
+        const data = await easyDB.remove("test", "1");
+    });
+
+    it('add file', async () => {
+        const easyDB = easyDBCore({
+            async saveCollection(name: string, data: Data) { },
+            async loadCollection(name: string): Promise<null | Data> { return null; },
+            async saveFile(base64: string) {
+                assert.equal(base64, DUMMY_FILE);
+                return "url/abc.png";
+            },
+            async removeFile(filePath: string) {
+                return;
+            },
+        });
+        await easyDB.insert("test", { picture: { url: DUMMY_FILE } });
+    });
+
+    it('update file', async () => {
+        const easyDB = easyDBCore({
+            async saveCollection(name: string, data: Data) {},
+            async loadCollection(name: string): Promise<null | Data> {
+                return {
+                    "1": { picture: { url: "/url/abc.png" } }
+                };
+            },
+            async saveFile(base64: string) {
+                return "url/abc2.png";
+            },
+            async removeFile(filePath: string) {
+                assert.equal(filePath, "/url/abc.png");
+                return;
+            },
+        });
+        await easyDB.update("test", "1", { picture: { url: DUMMY_FILE } });
+    });
+
+    it('remove file', async () => {
+        const easyDB = easyDBCore({
+            async saveCollection(name: string, data: Data) {},
+            async loadCollection(name: string): Promise<null | Data> {
+                return {
+                    "1": { picture: { url: "/url/abc.png" } }
+                };
+            },
+            async saveFile(base64: string) {
+                return "url/abc2.png";
+            },
+            async removeFile(filePath: string) {
+                assert.equal(filePath, "/url/abc.png");
+                return;
+            },
+        });
+        await easyDB.remove("test", "1");
     });
 });

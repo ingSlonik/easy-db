@@ -135,7 +135,7 @@ async function remove(backend: Backend, collection: string, id: Id) {
         const wholeCollection = await getData(backend, collection);
 
         if (typeof backend.removeFile === "function") {
-            await removeUpdatedFiles(wholeCollection[id], null, backend.removeFile);
+            await removeUpdatedFiles(null, wholeCollection[id], backend.removeFile);
         }
 
         delete wholeCollection[id];
@@ -164,3 +164,14 @@ export default (backend: Backend) => {
         }, 
     };
 };
+
+// this package check used ids, strong random is not necessary
+const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+const charactersLength = characters.length;
+export function getRandomId(length: number = 12) {
+    let result = '';
+    for (let i = 0; i < length; i++) {
+       result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    }
+    return result;
+}

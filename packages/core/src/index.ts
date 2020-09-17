@@ -1,10 +1,6 @@
 import queue from "./queue";
 import { getDataWithReplacedFiles, replaceFileData, removeUpdatedFiles } from "./file";
 
-type CollectionConfiguration = {
-    lastId: number,
-};
-
 export type Id = string;
 export type Row = any;
 export type Data = { [id: string]: Row };
@@ -16,40 +12,11 @@ export type Backend = {
     removeFile?: (path: string) => Promise<void>,
 };
 
-// globals for easyDB
-const configurationCollection = "easy-db-configuration";
-
 // queue for locking reading and writing configuration and data in the same time
 let easyDBQueue = null;
 
 
 // helpers
-
-async function getConfiguration(backend: Backend, collectionName: string): Promise<CollectionConfiguration> {
-    const configuration = await backend.loadCollection(configurationCollection);
-
-    if (
-        configuration !== null && 
-        typeof configuration[collectionName] === "object" && 
-        configuration[collectionName] !== null && 
-        typeof configuration[collectionName].lastId === "number"
-    ) {
-        return { lastId: configuration[collectionName].lastId };
-    } else {
-        return { lastId: 0 };
-    }
-}
-
-async function setConfiguration(backend: Backend, collectionName: string, newConfiguration: CollectionConfiguration): Promise<void> {
-    const configuration = await backend.loadCollection(configurationCollection);
-
-    if (configuration === null) {
-        await backend.saveCollection(configurationCollection, { [collectionName]: newConfiguration });
-    } else {
-        configuration[collectionName] = newConfiguration;
-        await backend.saveCollection(configurationCollection, configuration);
-    }
-}
 
 async function getData(backend: Backend, collectionName: string): Promise<Data> {
     const data = await backend.loadCollection(collectionName);
@@ -69,20 +36,19 @@ async function setData(backend: Backend, collectionName: string, data: Data): Pr
 
 async function insert(backend: Backend, collection: string, row: Row): Promise<Id> {
     easyDBQueue = queue(easyDBQueue, async () => {
-        const configuration = await getConfiguration(backend, collection);
         const wholeCollection = await getData(backend, collection);
 
-        const newId = configuration.lastId + 1;
-        const newIdString = String(newId);
+        const newId = getRandomId();
+        while (newId in wholeCollection) {}
+
         if (typeof backend.saveFile === "function") {
-            wholeCollection[newIdString] = await replaceFileData(row, backend.saveFile);
+            wholeCollection[newId] = await replaceFileData(row, backend.saveFile);
         } else {
-            wholeCollection[newIdString] = row;
+            wholeCollection[newId] = row;
         }
-        await setConfiguration(backend, collection, { ...configuration, lastId: newId });
         await setData(backend, collection, wholeCollection);
 
-        return newIdString;
+        return newId;
     });
 
     return await easyDBQueue;

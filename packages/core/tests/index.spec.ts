@@ -147,4 +147,33 @@ describe('Easy DB Core', () => {
         });
         await easyDB.remove("test", "1");
     });
+
+    it('keep types of rows', async () => {
+        const easyDB = easyDBCore({
+            async saveCollection(name: string, data: Data) {},
+            async loadCollection(name: string): Promise<null | Data> {
+                return {
+                    "1": {
+                        string: "String",
+                        number: 21,
+                        array: [1,2,3],
+                        object: { a: "a" },
+                    }
+                };
+            },
+            async saveFile(base64: string) {
+                return "url/abc2.png";
+            },
+            async removeFile(filePath: string) {
+                return;
+            },
+        });
+        const data = await easyDB.select("test", "1");
+        
+        assert.isString(data.string);
+        assert.isNumber(data.number);
+        assert.isArray(data.array);
+        assert.isObject(data.object);
+    });
+
 });

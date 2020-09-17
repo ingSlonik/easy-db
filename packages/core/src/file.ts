@@ -27,7 +27,9 @@ function isFileTag(data: Data): boolean {
 }
 
 export function getDataWithReplacedFiles(data: Data): Data {
-    if (typeof data === "object" && data !== null) {
+    if (Array.isArray(data)) {
+        return data.map(value => getDataWithReplacedFiles(value));
+    } else if (typeof data === "object" && data !== null) {
         if (isFileTag(data)) {
             return data.replaced;
         } else {
@@ -37,9 +39,7 @@ export function getDataWithReplacedFiles(data: Data): Data {
             }
             return newRow;
         }
-    } else if (Array.isArray(data)) {
-        return data.map(value => getDataWithReplacedFiles(value));
-    } else {
+    } else  {
         return data;
     }
 }
@@ -54,21 +54,27 @@ export async function replaceFileData(data: Data, replace: (base64: string) => P
         } else {
             return data;
         }
+    } else if (Array.isArray(data)) {
+        return data.map(async value => await replaceFileData(value, replace));
     } else if (typeof data === "object" && data !== null) {
         const newRow = {};
         for (const key in data) {
             newRow[key] = await replaceFileData(data[key], replace);
         }
         return newRow;
-    } else if (Array.isArray(data)) {
-        return data.map(async value => await replaceFileData(value, replace));
     } else {
         return data;
     }
 }
 
 export async function removeUpdatedFiles(newData: Data, oldData: Data, remove: (filePath: string) => Promise<void>) {
-    if (typeof oldData === "object" && oldData !== null) {
+    if (Array.isArray(oldData)) {
+        if (Array.isArray(newData)) {
+            oldData.forEach(async (value, i) => await removeUpdatedFiles(newData[i], value, remove));
+        } else {
+            oldData.forEach(async (value, i) => await removeUpdatedFiles(null, value, remove));
+        }
+    } else if (typeof oldData === "object" && oldData !== null) {
         if (isFileTag(oldData)) {
             if (isFileTag(newData)) {
                 if (oldData.replaced !== newData.replaced) {
@@ -87,12 +93,6 @@ export async function removeUpdatedFiles(newData: Data, oldData: Data, remove: (
                     await removeUpdatedFiles(null, oldData[key], remove);
                 }
             }
-        }
-    } else if (Array.isArray(oldData)) {
-        if (Array.isArray(newData)) {
-            oldData.forEach(async (value, i) => await removeUpdatedFiles(newData[i], value, remove));
-        } else {
-            oldData.forEach(async (value, i) => await removeUpdatedFiles(null, value, remove));
         }
     }
 }

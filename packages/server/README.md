@@ -21,6 +21,30 @@ Include types for TypeScript.
 $ npx easy-db-server
 ```
 
+### Help and configurations
+
+```
+Usage: easy-db-server --port <post> -html ./index.html
+
+Options:
+      --help     Show help                                             [boolean]
+      --version  Show version number                                   [boolean]
+  -p, --port     PORT                                                   [number]
+  -h, --html     Index HTML file                                        [string]
+```
+
+## Code
+
+`app` variable is the `express` instance.
+
+```js
+import app from "easy-db-server";
+
+const PORT = 80;
+
+app.listen(PORT, () => console.log(`Easy DB server is running at http://localhost:${PORT}.`));
+```
+
 ## Files
 
 * easy-db/

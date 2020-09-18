@@ -2,7 +2,7 @@ process.env.NODE_ENV = "test";
 
 import { assert, use, request } from "chai";
 import chaiHttp from "chai-http";
-import server from "../src";
+import server from "../src/cli";
 
 use(chaiHttp);
 

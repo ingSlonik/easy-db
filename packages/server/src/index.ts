@@ -1,16 +1,8 @@
-#!/usr/bin/env node
-
 import express from "express";
 
 import { select, insert, update, remove } from "easy-db-node";
 
-const PORT = 80;
-
 const app = express();
-
-app.get("/", function (req, res) {
-    res.send("<h1>Easy DB server</h1>");
-});
 
 app.use(express.json());
 
@@ -51,6 +43,4 @@ app.delete("/api/:collection/:id", async (req, res) => {
 });
 
 
-const server = app.listen(PORT, () => console.log(`Easy DB server is running on port ${PORT}.`));
-
-export default server; // for testing 
+export default app;

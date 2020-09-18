@@ -13,6 +13,7 @@ This database is NoSQL intended for developing and for less complex structures.
 | Node          | `npm install easy-db-node`           |
 | Browser       | `npm install easy-db-browser`        |
 | React native  | `npm install easy-db-react-native`   |
+| Server        | `npx easy-db-server`                 |
 
 Include types for TypeScript.
 

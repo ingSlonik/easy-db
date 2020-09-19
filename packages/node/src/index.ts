@@ -65,12 +65,13 @@ export const { insert, select, update, remove, file } = easyDB({
 
         const extension = getFileExtension(base64);
         const fileName = getFreeFileName(configuration.fileFolder, extension);
+        
         await writeFile(
             resolve(configuration.fileFolder, fileName),
             Buffer.from(base64, "base64"),
         );
 
-        return fileName;
+        return `${configuration.fileUrl}/${fileName}`;
     },
     async removeFile(path: string) {
         await unlink(resolve(configuration.fileFolder, basename(path)));
@@ -86,11 +87,12 @@ function getFreeFileName(path: string, extension: string): string {
     }
 }
 
-const regexFileExtension = new RegExp("^data:\w*\/(((\w*)\+\w*)|(\w*-(\w*))|((\w*)));base64,", "gi");
+const regexFileExtension = new RegExp("^data:\\w*\\/(((\\w*)\\+\\w*)|(\\w*-(\\w*))|((\\w*)));base64,", "gi");
 function getFileExtension(base64: string): string {
+    regexFileExtension.lastIndex = 0;
     const result = regexFileExtension.exec(base64);
-    if (result && result[3] && result[3].length > 1) {
-        return result[3];
+    if (result && result[1] && result[1].length > 1) {
+        return result[1] || result[7] || result[3] || result[5];
     } else {
         return "bin";
     }

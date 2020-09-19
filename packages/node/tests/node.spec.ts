@@ -1,6 +1,6 @@
 import { assert } from "chai";
 
-import { insert, select, update, remove, configure } from "../src/index";
+import { insert, select, update, remove, configure, file } from "../src/index";
 
 const DUMMY_FILE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
 
@@ -48,18 +48,18 @@ describe('Easy DB', () => {
     it('add file', async () => {
         const id = await insert("test", {
             name: "Example User",
-            photo: DUMMY_FILE,
+            photo: file(DUMMY_FILE),
         });
         const data = await select("test", id);
-        assert.isString(data.photo);
-        assert.notEqual(data.photo, DUMMY_FILE);
+        assert.isString(data.photo.url);
+        assert.notEqual(data.photo.url, DUMMY_FILE);
         await remove("test", id);
     });
 
     it('update file', async () => {
         const id = await insert("test", {
             name: "Example User",
-            photo: DUMMY_FILE,
+            photo: file(DUMMY_FILE),
         });
         await update("test", id, {
             name: "Example User",
@@ -75,11 +75,10 @@ describe('Easy DB', () => {
     it('remove file', async () => {
         const id = await insert("test", {
             name: "Example User",
-            photo: DUMMY_FILE,
+            photo: file(DUMMY_FILE),
         });
         await remove("test", id);
         const data = await select("test", id);
         assert.deepEqual(data, null);
     });
-
 });

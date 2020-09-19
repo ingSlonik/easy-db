@@ -1,5 +1,5 @@
 import queue from "./queue";
-import { getDataWithReplacedFiles, replaceFileData, removeUpdatedFiles } from "./file";
+import { getFile, replaceFileData, removeUpdatedFiles, File } from "./file";
 
 export type Id = string;
 export type Row = any;
@@ -11,6 +11,12 @@ export type Backend = {
     saveFile?: (base46: string) => Promise<string>,
     removeFile?: (path: string) => Promise<void>,
 };
+
+export { File } from "./file";
+export type Insert = (collection: string, row: Row | ((id: Id) => Row)) => Promise<string>;
+export type Select = (collection: string, id?: Id) => Promise<Data | Row>;
+export type Update = (collection: string, id: Id, row: Row) => Promise<void>;
+export type Remove = (collection: string, id: Id) => Promise<void>;
 
 // queue for locking reading and writing configuration and data in the same time
 let easyDBQueue = null;
@@ -34,99 +40,132 @@ async function setData(backend: Backend, collectionName: string, data: Data): Pr
 
 // API
 
-async function insert(backend: Backend, collection: string, row: Row): Promise<Id> {
-    easyDBQueue = queue(easyDBQueue, async () => {
+async function insert(backend: Backend, collection: string, row: Row | ((id: Id) => Row)): Promise<Id> {
+    
         const wholeCollection = await getData(backend, collection);
 
-        const newId = getRandomId();
-        while (newId in wholeCollection) {}
+        let newId = getRandomId();
+        while (newId in wholeCollection) {
+            newId = getRandomId();
+        }
+
+        row = typeof row === "function" ? row(newId) : row;
 
         if (typeof backend.saveFile === "function") {
-            wholeCollection[newId] = await replaceFileData(row, backend.saveFile);
+            wholeCollection[newId] = await replaceFileData(
+                row, collection, newId, backend.saveFile, (collection, row) => insert(backend, collection, row)
+            );
         } else {
             wholeCollection[newId] = row;
         }
         await setData(backend, collection, wholeCollection);
 
         return newId;
-    });
-
+    
+}
+async function queueInsert(backend: Backend, collection: string, row: Row | ((id: Id) => Row)): Promise<Id> {
+    easyDBQueue = queue(easyDBQueue, async () => await insert(backend, collection, row));
     return await easyDBQueue;
 }
 
 async function select(backend: Backend, collection: string, id: null | Id): Promise<null | Row> {
-    easyDBQueue = queue(easyDBQueue, async () => {
-        const wholeCollection = await getData(backend, collection);
+    const wholeCollection = await getData(backend, collection);
 
-        if (id === null) {
-            if (typeof backend.saveFile === "function") {
-                return getDataWithReplacedFiles(wholeCollection);
-            } else {
-                return wholeCollection;
-            }
+    if (id === null) {
+        return wholeCollection;
+    } else {
+        if (id in wholeCollection) {
+            return wholeCollection[id];
         } else {
-            if (id in wholeCollection) {
-                if (typeof backend.saveFile === "function") {
-                    return getDataWithReplacedFiles(wholeCollection[id]);
-                } else {
-                    return wholeCollection[id];
-                }
-            } else {
-                return null;
-            }
+            return null;
         }
-    });
-
+    }
+}
+async function queueSelect(backend: Backend, collection: string, id: null | Id): Promise<null | Row> {
+    easyDBQueue = queue(easyDBQueue, async () => await select(backend, collection, id));
     return await easyDBQueue;
 }
 
 async function update(backend: Backend, collection: string, id: Id, row: Row) {
-    easyDBQueue = queue(easyDBQueue, async () => {
-        const wholeCollection = await getData(backend, collection);
-        if (typeof backend.saveFile === "function" && typeof backend.removeFile === "function") {
-            const rowWithReplacedFileData = await replaceFileData(row, backend.saveFile);
-            await removeUpdatedFiles(rowWithReplacedFileData, wholeCollection[id], backend.removeFile);
-            wholeCollection[id] = rowWithReplacedFileData;
-        } else {
-            wholeCollection[id] = row;
-        }
-        await setData(backend, collection, wholeCollection);
-    });
-
+    const wholeCollection = await getData(backend, collection);
+    if (typeof backend.saveFile === "function" && typeof backend.removeFile === "function") {
+        const rowWithReplacedFileData = await replaceFileData(
+            row,
+            collection,
+            id,
+            backend.saveFile,
+            (collection, id) => select(backend, collection, id),
+        );
+        await removeUpdatedFiles(
+            rowWithReplacedFileData, 
+            wholeCollection[id], 
+            collection,
+            id,
+            backend.removeFile,
+            (collection, id) => select(backend, collection, id),
+            (collection, id, row) => update(backend, collection, id, row),
+            (collection, id) => remove(backend, collection, id),
+        );
+        wholeCollection[id] = rowWithReplacedFileData;
+    } else {
+        wholeCollection[id] = row;
+    }
+    await setData(backend, collection, wholeCollection);
+}
+async function queueUpdate(backend: Backend, collection: string, id: Id, row: Row) {
+    easyDBQueue = queue(easyDBQueue, async () => await update(backend, collection, id, row));
     return await easyDBQueue;
 }
 
 async function remove(backend: Backend, collection: string, id: Id) {
-    easyDBQueue = queue(easyDBQueue, async () => {
-        const wholeCollection = await getData(backend, collection);
+    const wholeCollection = await getData(backend, collection);
 
-        if (typeof backend.removeFile === "function") {
-            await removeUpdatedFiles(null, wholeCollection[id], backend.removeFile);
-        }
+    if (typeof backend.removeFile === "function") {
+        await removeUpdatedFiles(
+            null, 
+            wholeCollection[id], 
+            collection,
+            id,
+            backend.removeFile,
+            (collection, id) => select(backend, collection, id),
+            (collection, id, row) => update(backend, collection, id, row),
+            (collection, id) => remove(backend, collection, id),
+        );
+    }
 
-        delete wholeCollection[id];
+    delete wholeCollection[id];
 
-        await setData(backend, collection, wholeCollection);
-    });
-
+    await setData(backend, collection, wholeCollection);
+}
+async function queueRemove(backend: Backend, collection: string, id: Id) {
+    easyDBQueue = queue(easyDBQueue, async () => await remove(backend, collection, id));
     return await easyDBQueue;
 }
 
 // export easyDB core
 
-export default (backend: Backend) => {
+export default (backend: Backend): {
+    file: (base64: string) => File,
+    insert: Insert,
+    select: Select,
+    update: Update,
+    remove: Remove,
+} => {
     return {
-        async insert(collection: string, row: Row) {
-            return await insert(backend, collection, row);
+        file(base64: string): File {
+            return getFile(base64);
+        },
+        async insert(collection: string, row: Row | ((id: Id) => Row)) {
+            return await queueInsert(backend, collection, row);
         }, 
         async select(collection: string, id?: Id) {
-            return await select(backend, collection, typeof id === "string" ? id : null);
+            return await queueSelect(backend, collection, typeof id === "string" ? id : null);
         },
         async update(collection: string, id: Id, row: Row) {
-            return await update(backend, collection, id, row);
+            return await queueUpdate(backend, collection, id, row);
         },
         async remove(collection: string, id: Id) {
-            return await remove(backend, collection, id);
+            return await queueRemove(backend, collection, id);
         }, 
     };
 };

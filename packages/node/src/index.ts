@@ -3,7 +3,7 @@ import { promises, existsSync } from "fs";
 const { readFile, mkdir, writeFile, unlink } = promises;
 
 import easyDB, { getRandomId, Data } from "easy-db-core";
-
+export * from "easy-db-core";
 
 type Partial<T> = {
     [P in keyof T]?: T[P];
@@ -28,7 +28,7 @@ export function configure(config: Partial<Configuration>) {
     }
 }
 
-export const { insert, select, update, remove } = easyDB({
+export const { insert, select, update, remove, file } = easyDB({
     async saveCollection(name: string, data: Data) {
         if (!existsSync(configuration.folderDB)) {
             await mkdir(configuration.folderDB);
@@ -63,17 +63,7 @@ export const { insert, select, update, remove } = easyDB({
             await mkdir(configuration.fileFolder);
         }
 
-        let extension = "bin";
-        if (base64.startsWith("data:")) {
-            const indexFrom = base64.indexOf('/');
-            if (indexFrom > -1) {
-                const indexTo = base64.indexOf(';base64');
-                if (indexFrom < indexTo) {
-                    extension = base64.substring(indexFrom + 1, indexTo);
-                }
-            }
-        }
-
+        const extension = getFileExtension(base64);
         const fileName = getFreeFileName(configuration.fileFolder, extension);
         await writeFile(
             resolve(configuration.fileFolder, fileName),
@@ -93,5 +83,15 @@ function getFreeFileName(path: string, extension: string): string {
         return getFreeFileName(path, extension);
     } else {
         return fileName;
+    }
+}
+
+const regexFileExtension = new RegExp("^data:\w*\/(((\w*)\+\w*)|(\w*-(\w*))|((\w*)));base64,", "gi");
+function getFileExtension(base64: string): string {
+    const result = regexFileExtension.exec(base64);
+    if (result && result[3] && result[3].length > 1) {
+        return result[3];
+    } else {
+        return "bin";
     }
 }

@@ -7,18 +7,33 @@
  * With updating or removing will take care to replacing this tag.
  */
 
-type Data = any;
-type FileTag = {
-    type: "EASY_DB_FILE_TAG",
-    replaced: string,
+import { Insert, Select, Update, Remove } from "./";
+
+export type File = {
+    id?: string,
+    type: "EASY_DB_FILE",
+    url: string,
 };
 
-function isFileTag(data: Data): boolean {
+type Data = any;
+type FileRow = {
+    id: string,
+    fileName: string,
+    use: Array<{
+        collection: string,
+        rowId: string,
+    }>,
+};
+
+const FILE_COLLECTION = "easy-db-files";
+
+
+function isFile(data: Data): boolean {
     if (
         typeof data === "object"
         && data !== null
-        && data.type === "EASY_DB_FILE_TAG"
-        && typeof data.replaced === "string"
+        && data.type === "EASY_DB_FILE"
+        && typeof data.url === "string"
     ) {
         return true;
     } else {
@@ -26,75 +41,108 @@ function isFileTag(data: Data): boolean {
     }
 }
 
-export function getDataWithReplacedFiles(data: Data): Data {
+function isNewFile(file: File): boolean {
+    // back compatibility
+    return typeof file.id !== "string" && isBase64(file.url);
+}
+
+export function getFile(url: string): File { 
+    return {
+        id: null,
+        type: "EASY_DB_FILE",
+        url,
+    };
+}
+
+export async function replaceFileData(
+    data: Data, 
+    collection: string,
+    rowId: string,
+    replaceFile: (base64: string) => Promise<string>, 
+    insert: Insert,
+): Promise<Data> {
     if (Array.isArray(data)) {
-        return data.map(value => getDataWithReplacedFiles(value));
+        return data.map(async value => await replaceFileData(value, collection, rowId, replaceFile, insert));
     } else if (typeof data === "object" && data !== null) {
-        if (isFileTag(data)) {
-            return data.replaced;
+        if (isFile(data)) {
+            if (isNewFile(data)) {
+                const fileName = await replaceFile(data.url);
+                await insert(FILE_COLLECTION, id => ({
+                    id,
+                    fileName,
+                    use: [{
+                        collection,
+                        rowId,
+                    }]
+                }));
+            } else {
+                return data;
+            }
         } else {
             const newRow = {};
             for (const key in data) {
-                newRow[key] = getDataWithReplacedFiles(data[key]);
+                newRow[key] = await replaceFileData(data[key], collection, rowId, replaceFile, insert);
             }
             return newRow;
         }
-    } else  {
-        return data;
-    }
-}
-
-export async function replaceFileData(data: Data, replace: (base64: string) => Promise<string>): Promise<Data> {
-    if (typeof data === "string") {
-        if (isBase64(data)) {
-            return {
-                type: "EASY_DB_FILE_TAG",
-                replaced: await replace(data)
-            };
-        } else {
-            return data;
-        }
-    } else if (Array.isArray(data)) {
-        return data.map(async value => await replaceFileData(value, replace));
-    } else if (typeof data === "object" && data !== null) {
-        const newRow = {};
-        for (const key in data) {
-            newRow[key] = await replaceFileData(data[key], replace);
-        }
-        return newRow;
     } else {
         return data;
     }
 }
 
-export async function removeUpdatedFiles(newData: Data, oldData: Data, remove: (filePath: string) => Promise<void>) {
-    if (Array.isArray(oldData)) {
-        if (Array.isArray(newData)) {
-            oldData.forEach(async (value, i) => await removeUpdatedFiles(newData[i], value, remove));
-        } else {
-            oldData.forEach(async (value, i) => await removeUpdatedFiles(null, value, remove));
-        }
-    } else if (typeof oldData === "object" && oldData !== null) {
-        if (isFileTag(oldData)) {
-            if (isFileTag(newData)) {
-                if (oldData.replaced !== newData.replaced) {
-                    remove(oldData.replaced);
+export async function removeUpdatedFiles(
+    newData: Data,
+    oldData: Data,
+    collection: string,
+    rowId: string,
+    removeFile: (filePath: string) => Promise<void>,
+    select: Select,
+    update: Update,
+    remove: Remove,
+) {
+    const newFiles = getFilesFromData(newData);
+    const oldFiles = getFilesFromData(oldData);
+    
+    for (const { id, url } of oldFiles) {
+        if (newFiles.map(f => f.id).indexOf(id) < 0) {
+            if (id) {
+                const fileRow: null | FileRow = await select(FILE_COLLECTION, id);
+                if (fileRow) {
+                    const use = fileRow.use.filter(use => use.collection !== collection && use.rowId !== rowId);
+
+                    if (use.length === 0) {
+                        // remove file only when is not used
+                        await remove(FILE_COLLECTION, id);
+                        await removeFile(url);
+                    } else {
+                        await update(FILE_COLLECTION, id, { ...fileRow, use });
+                    }
+                } else {
+                    // back compatibility
+                    removeFile(url);
                 }
             } else {
-                remove(oldData.replaced);
-            }
-        } else {
-            if (typeof newData === "object" && newData !== null) {
-                for (const key in oldData) {
-                    await removeUpdatedFiles(newData[key], oldData[key], remove);
-                }
-            } else {
-                for (const key in oldData) {
-                    await removeUpdatedFiles(null, oldData[key], remove);
-                }
+                // back compatibility
+                removeFile(url);
             }
         }
     }
+}
+
+function getFilesFromData(data: Data, files: File[] = []): File[] {
+    if (isFile(data)) {
+        if (files.map(f => f.id).indexOf(data.id) < 0) {
+            files = [ ...files, data ];
+        }
+    } else if (Array.isArray(data)) {
+        data.forEach(value => files = getFilesFromData(value, files));
+    } else if (typeof data === "object" && data !== null) {
+        for (const key in data) {
+            files = getFilesFromData(data[key], files);
+        }
+    }
+
+    return files;
 }
 
 // Source: https://github.com/miguelmota/is-base64/blob/master/is-base64.js

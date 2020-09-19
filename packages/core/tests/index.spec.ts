@@ -107,7 +107,7 @@ describe('Easy DB Core', () => {
                 return;
             },
         });
-        await easyDB.insert("test", { picture: { url: DUMMY_FILE } });
+        await easyDB.insert("test", { picture: easyDB.file(DUMMY_FILE) });
     });
 
     it('update file', async () => {
@@ -115,7 +115,7 @@ describe('Easy DB Core', () => {
             async saveCollection(name: string, data: Data) {},
             async loadCollection(name: string): Promise<null | Data> {
                 return {
-                    "1": { picture: { url: "/url/abc.png" } }
+                    "1": { picture: { id: "a", type: "EASY_DB_FILE", url: "/url/abc.png" } }
                 };
             },
             async saveFile(base64: string) {
@@ -126,7 +126,7 @@ describe('Easy DB Core', () => {
                 return;
             },
         });
-        await easyDB.update("test", "1", { picture: { url: DUMMY_FILE } });
+        await easyDB.update("test", "1", { picture: easyDB.file(DUMMY_FILE) });
     });
 
     it('remove file', async () => {
@@ -134,7 +134,7 @@ describe('Easy DB Core', () => {
             async saveCollection(name: string, data: Data) {},
             async loadCollection(name: string): Promise<null | Data> {
                 return {
-                    "1": { picture: { url: "/url/abc.png" } }
+                    "1": { picture: { id: "a", type: "EASY_DB_FILE", url: "/url/abc.png" } }
                 };
             },
             async saveFile(base64: string) {

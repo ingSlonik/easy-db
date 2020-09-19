@@ -18,7 +18,7 @@ export type File = {
 type Data = any;
 type FileRow = {
     id: string,
-    fileName: string,
+    url: string,
     use: Array<{
         collection: string,
         rowId: string,
@@ -60,31 +60,50 @@ export async function replaceFileData(
     rowId: string,
     replaceFile: (base64: string) => Promise<string>, 
     insert: Insert,
+    select: Select,
+    update: Update,
 ): Promise<Data> {
-    if (Array.isArray(data)) {
-        return data.map(async value => await replaceFileData(value, collection, rowId, replaceFile, insert));
-    } else if (typeof data === "object" && data !== null) {
-        if (isFile(data)) {
-            if (isNewFile(data)) {
-                const fileName = await replaceFile(data.url);
-                await insert(FILE_COLLECTION, id => ({
-                    id,
-                    fileName,
-                    use: [{
-                        collection,
-                        rowId,
-                    }]
-                }));
-            } else {
-                return data;
-            }
+    if (isFile(data)) {
+        if (isNewFile(data)) {
+            const url = await replaceFile(data.url);
+            const use = [ { collection, rowId } ];
+            const id = await insert(FILE_COLLECTION, (id: string): FileRow => ({ id, url, use }));
+            const file: File = { id, type: "EASY_DB_FILE", url };
+            return file;
         } else {
-            const newRow = {};
-            for (const key in data) {
-                newRow[key] = await replaceFileData(data[key], collection, rowId, replaceFile, insert);
+            if (typeof data.id === "string") {
+                const fileRow: null | FileRow = await select(FILE_COLLECTION, data.id);
+                if (fileRow) {
+                    await update(FILE_COLLECTION, data.id, {
+                        ...fileRow,
+                        use: [
+                            fileRow.use.filter(use => use.collection !== collection && use.rowId !== rowId),
+                            { collection, rowId }
+                        ],
+                    });
+                } else {
+                    await update(FILE_COLLECTION, data.id, {
+                        id: data.id,
+                        url: data.url,
+                        use: [ { collection, rowId } ],
+                    });
+                }
             }
-            return newRow;
+
+            return data;
         }
+    } else if (Array.isArray(data)) {
+        const newData = [];
+        for (const value of data) {
+            newData.push(await replaceFileData(value, collection, rowId, replaceFile, insert, select, update));
+        }
+        return newData;
+    } else if (typeof data === "object" && data !== null) {
+        const newRow = {};
+        for (const key in data) {
+            newRow[key] = await replaceFileData(data[key], collection, rowId, replaceFile, insert, select, update);
+        }
+        return newRow;
     } else {
         return data;
     }
@@ -103,9 +122,13 @@ export async function removeUpdatedFiles(
     const newFiles = getFilesFromData(newData);
     const oldFiles = getFilesFromData(oldData);
     
-    for (const { id, url } of oldFiles) {
-        if (newFiles.map(f => f.id).indexOf(id) < 0) {
-            if (id) {
+    // now files are already in DB, not empty id
+    const newFilesIds = newFiles.map(f => f.id);
+    
+    for (const oldFile of oldFiles) {
+        const { id, url } = oldFile;
+        if (newFilesIds.indexOf(id) < 0) {
+            if (typeof id === "string") {
                 const fileRow: null | FileRow = await select(FILE_COLLECTION, id);
                 if (fileRow) {
                     const use = fileRow.use.filter(use => use.collection !== collection && use.rowId !== rowId);
@@ -121,9 +144,6 @@ export async function removeUpdatedFiles(
                     // back compatibility
                     removeFile(url);
                 }
-            } else {
-                // back compatibility
-                removeFile(url);
             }
         }
     }

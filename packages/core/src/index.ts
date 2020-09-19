@@ -41,27 +41,31 @@ async function setData(backend: Backend, collectionName: string, data: Data): Pr
 // API
 
 async function insert(backend: Backend, collection: string, row: Row | ((id: Id) => Row)): Promise<Id> {
-    
-        const wholeCollection = await getData(backend, collection);
+    const wholeCollection = await getData(backend, collection);
 
-        let newId = getRandomId();
-        while (newId in wholeCollection) {
-            newId = getRandomId();
-        }
+    let newId = getRandomId();
+    while (newId in wholeCollection) {
+        newId = getRandomId();
+    }
 
-        row = typeof row === "function" ? row(newId) : row;
+    row = typeof row === "function" ? row(newId) : row;
 
-        if (typeof backend.saveFile === "function") {
-            wholeCollection[newId] = await replaceFileData(
-                row, collection, newId, backend.saveFile, (collection, row) => insert(backend, collection, row)
-            );
-        } else {
-            wholeCollection[newId] = row;
-        }
-        await setData(backend, collection, wholeCollection);
+    if (typeof backend.saveFile === "function") {
+        wholeCollection[newId] = await replaceFileData(
+            row,
+            collection,
+            newId,
+            backend.saveFile,
+            async (collection, row) => await insert(backend, collection, row),
+            async (collection, id) => await select(backend, collection, id),
+            async (collection, id, row) => await update(backend, collection, id, row),
+        );
+    } else {
+        wholeCollection[newId] = row;
+    }
+    await setData(backend, collection, wholeCollection);
 
-        return newId;
-    
+    return newId;
 }
 async function queueInsert(backend: Backend, collection: string, row: Row | ((id: Id) => Row)): Promise<Id> {
     easyDBQueue = queue(easyDBQueue, async () => await insert(backend, collection, row));
@@ -94,7 +98,9 @@ async function update(backend: Backend, collection: string, id: Id, row: Row) {
             collection,
             id,
             backend.saveFile,
-            (collection, id) => select(backend, collection, id),
+            async (collection, row) => await insert(backend, collection, row),
+            async (collection, id) => await select(backend, collection, id),
+            async (collection, id, row) => await update(backend, collection, id, row),
         );
         await removeUpdatedFiles(
             rowWithReplacedFileData, 
@@ -102,9 +108,9 @@ async function update(backend: Backend, collection: string, id: Id, row: Row) {
             collection,
             id,
             backend.removeFile,
-            (collection, id) => select(backend, collection, id),
-            (collection, id, row) => update(backend, collection, id, row),
-            (collection, id) => remove(backend, collection, id),
+            async (collection, id) => await select(backend, collection, id),
+            async (collection, id, row) => await update(backend, collection, id, row),
+            async (collection, id) => await remove(backend, collection, id),
         );
         wholeCollection[id] = rowWithReplacedFileData;
     } else {
@@ -127,9 +133,9 @@ async function remove(backend: Backend, collection: string, id: Id) {
             collection,
             id,
             backend.removeFile,
-            (collection, id) => select(backend, collection, id),
-            (collection, id, row) => update(backend, collection, id, row),
-            (collection, id) => remove(backend, collection, id),
+            async (collection, id) => await select(backend, collection, id),
+            async (collection, id, row) => await update(backend, collection, id, row),
+            async (collection, id) => await remove(backend, collection, id),
         );
     }
 

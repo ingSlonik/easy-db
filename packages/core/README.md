@@ -20,6 +20,7 @@ import { insert, select, update, remove } from "easy-db-*";
 
 // INSERT
 const idOfRow = await insert("collection1", { myRow: 1 });
+const idOfRow = await insert("collection1", id => ({ id, myRow: 1 }));
 
 // SELECT
 const allCollection1 = await select("collection1");
@@ -47,7 +48,7 @@ const nickname = await select("myAppName", "nickname");
 
 ### File saving as url
 ```js
-import { select, update, configure } from "easy-db-node";
+import { select, update, file, configure } from "easy-db-node";
 
 configure({ fileFolder: "./files", fileUrl: "/files" });
 
@@ -55,12 +56,17 @@ configure({ fileFolder: "./files", fileUrl: "/files" });
 await update("myAppName", "user", {
     name: "Example User",
     // any file in base64
-    photo: "data:image/png;base64,iVB...YI=",
+    photo: file("data:image/png;base64,iVB...YI="),
+    // or
+    photo: {
+        type: "EASY_DB_FILE",
+        url: "data:image/png;base64,iVB...YI=",
+    }
 });
 
 // Load with picture
 const user = await select("myAppName", "user");
-// user = { name: "Example User", photo: "/files/1f6bef21.png" }
+// user = { name: "Example User", photo: { url: "/files/1f6bef21.png" } }
 ```
 
 

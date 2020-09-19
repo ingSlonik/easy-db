@@ -38,7 +38,9 @@ Options:
 `app` variable is the `express` instance.
 
 ```js
-import app from "easy-db-server";
+import { app } from "easy-db-server";
+// or
+const { app } = require("easy-db-server");
 
 const PORT = 80;
 
@@ -48,9 +50,15 @@ app.listen(PORT, () => console.log(`Easy DB server is running at http://localhos
 ## Files
 
 * easy-db/
-  * files/
   * collection1.json
   * collection1-wrong-20180912.json
+* easy-db-files/
+  * j9pSCplbMx7U.png
+
+### Upload files by REST API
+
+Just sent to POST or PUT anywhere in the body `{ "type": "EASY_DB_FILE", "url": "data:image/png;base64,iVB...YI=" }`.
+With GET you will receive `{ "type": "EASY_DB_FILE", "url": "/easy-db-files/j9pSCplbMx7U.png" }`
 
 ### Update DB without code
 

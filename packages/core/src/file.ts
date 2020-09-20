@@ -128,7 +128,7 @@ export async function removeUpdatedFiles(
     for (const oldFile of oldFiles) {
         const { id, url } = oldFile;
         if (newFilesIds.indexOf(id) < 0) {
-            if (typeof id === "string") {
+            if (typeof id === "string" && !isBase64(url)) {
                 const fileRow: null | FileRow = await select(FILE_COLLECTION, id);
                 if (fileRow) {
                     const use = fileRow.use.filter(use => use.collection !== collection && use.rowId !== rowId);
@@ -136,7 +136,7 @@ export async function removeUpdatedFiles(
                     if (use.length === 0) {
                         // remove file only when is not used
                         await remove(FILE_COLLECTION, id);
-                        await removeFile(url);
+                        removeFile(url);
                     } else {
                         await update(FILE_COLLECTION, id, { ...fileRow, use });
                     }

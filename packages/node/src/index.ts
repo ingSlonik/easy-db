@@ -68,7 +68,7 @@ export const { insert, select, update, remove, file } = easyDB({
         
         await writeFile(
             resolve(configuration.fileFolder, fileName),
-            Buffer.from(base64, "base64"),
+            Buffer.from(getClearBase64(base64), "base64"),
         );
 
         return `${configuration.fileUrl}/${fileName}`;
@@ -87,6 +87,7 @@ function getFreeFileName(path: string, extension: string): string {
     }
 }
 
+// parser for most popular extensions
 const regexFileExtension = new RegExp("^data:\\w*\\/(((\\w*)\\+\\w*)|(\\w*-(\\w*))|((\\w*)));base64,", "gi");
 function getFileExtension(base64: string): string {
     regexFileExtension.lastIndex = 0;
@@ -96,4 +97,9 @@ function getFileExtension(base64: string): string {
     } else {
         return "bin";
     }
+}
+
+function getClearBase64(base64: string): string {
+    const result = base64.split(';base64,');
+    return result[1] || base64;
 }

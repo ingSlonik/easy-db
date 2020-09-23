@@ -6,7 +6,7 @@ import server from "../src/cli";
 
 use(chaiHttp);
 
-// const DUMMY_FILE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+const DUMMY_FILE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
 
 describe('Easy DB server', () => {
     
@@ -80,6 +80,46 @@ describe('Easy DB server', () => {
         });
     });
 
+    it('add file', (done) => {
+        const item = { photo: { "type": "EASY_DB_FILE", "url": DUMMY_FILE } };
+
+        request(server).post("/api/test").send(item).end((err, res) => {
+            const id = JSON.parse(res.text);
+            assert.equal(res.status, 200);
+            assert.isString(id);
+
+            request(server).get(`/api/test/${id}`).end((err, res) => {
+                const body = JSON.parse(res.text);
+                assert.isString(body.photo.url);
+                assert.notEqual(body.photo.url, item.photo.url);
+                done();
+            });
+        });
+    });
+
+    it('save file to different row', (done) => {
+        const item = { photo: { "type": "EASY_DB_FILE", "url": DUMMY_FILE } };
+
+        request(server).post("/api/test").send(item).end((err, res) => {
+            const id = JSON.parse(res.text);
+
+            request(server).get(`/api/test/${id}`).end((err, res) => {
+                const body = JSON.parse(res.text);
+
+                request(server).post("/api/test").send(body).end((err, res) => {
+                    const id2 = JSON.parse(res.text);
+        
+                    request(server).get(`/api/test/${id2}`).end((err, res) => {
+                        const body2 = JSON.parse(res.text);
+
+                        assert.equal(body.photo.url, body2.photo.url);
+                        
+                        done();
+                    });
+                });
+            });
+        });
+    });
 
     after(() => {
         server.close();

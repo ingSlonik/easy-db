@@ -42,7 +42,7 @@ app.delete("/api/:collection/:id", async (req, res) => {
     res.send("");
 });
 
-app.use('/easy-db-files', express.static('easy-db-files'));
+app.use("/easy-db-files", express.static("easy-db-files"));
 
 export { app };
 

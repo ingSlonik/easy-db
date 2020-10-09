@@ -2,6 +2,7 @@ import { resolve, basename } from "path";
 import { promises, existsSync } from "fs";
 const { readFile, mkdir, writeFile, unlink } = promises;
 
+import { getExtension } from "mime";
 import easyDB, { getRandomId, Data } from "easy-db-core";
 export * from "easy-db-core";
 
@@ -88,12 +89,12 @@ function getFreeFileName(path: string, extension: string): string {
 }
 
 // parser for most popular extensions
-const regexFileExtension = new RegExp("^data:\\w*\\/(((\\w*)\\+\\w*)|(\\w*-(\\w*))|((\\w*)));base64,", "gi");
+const regexMimeType = new RegExp("^data:(.*);base64,", "gi");
 function getFileExtension(base64: string): string {
-    regexFileExtension.lastIndex = 0;
-    const result = regexFileExtension.exec(base64);
-    if (result && result[1] && result[1].length > 1) {
-        return result[1] || result[7] || result[3] || result[5];
+    regexMimeType.lastIndex = 0;
+    const result = regexMimeType.exec(base64);
+    if (result && result[1]) {
+        return getExtension(result[1]);
     } else {
         return "bin";
     }

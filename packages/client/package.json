@@ -1,0 +1,42 @@
+{
+    "name": "easy-db-client",
+    "version": "1.4.1",
+    "description": "Lite&easy client for `easy-db-server` or other full REST server.",
+    "main": "./lib/index.js",
+    "types": "./lib/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "test": "mocha -r ts-node/register tests/**/*.spec.ts",
+        "prepublish": "npm run build"
+    },
+    "license": "MIT",
+    "devDependencies": {
+        "@types/chai": "^4.2.11",
+        "@types/node-fetch": "^2.5.7",
+        "@types/mocha": "^7.0.2",
+        "easy-db-server": "x.x.x",
+        "chai": "^4.2.0",
+        "node-fetch": "^2.6.1",
+        "mocha": "^7.1.2",
+        "ts-node": "^8.9.1",
+        "typescript": "^3.8.3"
+    },
+    "dependencies": {},
+    "keywords": [
+        "easy&lite",
+        "browser",
+        "react-native",
+        "database",
+        "REST",
+        "API",
+        "TypeScript"
+    ],
+    "author": "Filip Paulů <ing.fenix@seznam.cz>",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ingSlonik/easy-db.git"
+    },
+    "bugs": {
+        "url": "https://github.com/ingSlonik/easy-db/issues"
+    }
+}

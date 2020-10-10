@@ -5,7 +5,7 @@ import yargs from "yargs";
 import app from "./";
 
 const options = yargs
-    .usage("Usage: easy-db-server --port <post> -html ./index.html")
+    .usage("Usage: easy-db-server --port <port> -html ./index.html")
     .option("p", { alias: "port", describe: "PORT", type: "number", demandOption: false })
     .option("h", { alias: "html", describe: "Index HTML file", type: "string", demandOption: false })
     .argv;

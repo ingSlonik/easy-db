@@ -24,7 +24,7 @@ $ npx easy-db-server
 ### Help and configurations
 
 ```
-Usage: easy-db-server --port <post> -html ./index.html
+Usage: easy-db-server --port <port> -html ./index.html
 
 Options:
       --help     Show help                                             [boolean]

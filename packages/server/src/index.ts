@@ -9,9 +9,13 @@ app.use(express.json());
 app.get("/api/:collection", async (req, res) => {
     const { collection } = req.params;
     const data = await select(collection);
-    const rows = Object.values(data);
 
-    res.send(JSON.stringify(rows));
+    if (req.query["easy-db-client"] === "true") {
+        res.send(JSON.stringify(data));
+    } else {
+        const rows = Object.values(data);
+        res.send(JSON.stringify(rows));
+    }
 });
 
 app.get("/api/:collection/:id", async (req, res) => {

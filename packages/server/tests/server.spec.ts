@@ -27,6 +27,15 @@ describe('Easy DB server', () => {
         });
     });
 
+    it('GET all as easy-db-client', (done) => {
+        request(server).get("/api/test?easy-db-client=true").end((err, res) => {
+            const body = JSON.parse(res.text);
+            assert.equal(res.status, 200);
+            assert.isNotArray(body);
+            done();
+        });
+    });
+
     it('POST and GET one', (done) => {
         const item = { a: "Item1" };
 

@@ -40,4 +40,5 @@ await remove("collection1", idOfRow); // only one row
 
 // INSERT FILE
 const idOfRow = await insert("collection1", { photo: file("data:base64...") });
+// saved { photo: { url: "http://..." } }
 ```

@@ -16,12 +16,20 @@ describe('Easy DB client', () => {
     
     it('insert', async () => {
         const id = await insert("test", { myFirst: 1 });
-        assert.equal(typeof id, "string");
+        assert.isString(id);
+    });
+    
+    it('insert with callback', async () => {
+        const id = await insert("test", id => ({ id, myFirst: 1 }));
+        assert.isString(id);
+        const data = await select("test", id);
+        assert.equal(id, data.id);
     });
 
     it('select all', async () => {
         const data = await select("test");
-        assert.equal(typeof data, "object");
+        assert.isObject(data);
+        assert.isNotArray(data);
     });
 
     it('select', async () => {

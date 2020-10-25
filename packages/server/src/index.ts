@@ -1,9 +1,11 @@
 import express from "express";
+import cors from "cors";
 
 import { select, insert, update, remove } from "easy-db-node";
 
 const app = express();
 
+app.use(cors());
 app.use(express.json());
 
 app.get("/api/:collection", async (req, res) => {

@@ -32,9 +32,9 @@
     "author": "Filip Paulů <ing.fenix@seznam.cz>",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/ingSlonik/easy-db-react-native.git"
+        "url": "git+https://github.com/ingSlonik/easy-db.git"
     },
     "bugs": {
-        "url": "https://github.com/ingSlonik/easy-db-react-native/issues"
+        "url": "https://github.com/ingSlonik/easy-db/issues"
     }
 }

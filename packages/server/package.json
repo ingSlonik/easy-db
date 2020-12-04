@@ -44,9 +44,9 @@
     "author": "Filip Paulů <ing.fenix@seznam.cz>",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/ingSlonik/easy-db-node.git"
+        "url": "git+https://github.com/ingSlonik/easy-db.git"
     },
     "bugs": {
-        "url": "https://github.com/ingSlonik/easy-db-node/issues"
+        "url": "https://github.com/ingSlonik/easy-db/issues"
     }
 }

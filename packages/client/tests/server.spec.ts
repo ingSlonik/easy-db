@@ -32,6 +32,14 @@ describe('Easy DB client', () => {
         assert.isNotArray(data);
     });
 
+    it('select with query', async () => {
+        const query = { second: 1 };
+        const data = await select("test", query);
+        assert.isObject(data);
+        assert.isNotArray(data);
+        Object.values(data).forEach(value => assert.deepNestedInclude(value, query));
+    });
+
     it('select', async () => {
         const id = await insert("test", { myFirst: 2 });
         const data = await select("test", id);

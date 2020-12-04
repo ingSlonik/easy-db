@@ -10,7 +10,7 @@ export type File = {
 };
 
 export type Insert = (collection: string, row: Row | ((id: Id) => Row)) => Promise<string>;
-export type Select = (collection: string, id?: Id) => Promise<Data | Row>;
+export type Select = (collection: string, idOrQuery?: Id | object) => Promise<Row>;
 export type Update = (collection: string, id: Id, row: Row) => Promise<void>;
 export type Remove = (collection: string, id: Id) => Promise<void>;
 
@@ -53,8 +53,18 @@ export const insert: Insert = async (collection, row) => {
     }
 }
 
-export const select: Select = async (collection, id) => {
-    const url = `${configuration.server}${collection}${typeof id === "string" ? `/${id}` : "?easy-db-client=true"}`;
+export const select: Select = async (collection, idOrQuery) => {
+    let url = `${configuration.server}${collection}`;
+    if (typeof idOrQuery === "string") {
+        // SelectRow
+        url += `/${idOrQuery}`;
+    } else if (typeof idOrQuery === "undefined") {
+        // Select whole Data
+        url += "?easy-db-client=true";
+    } else if (typeof idOrQuery === "object") {
+        url += `?easy-db-client=true&query=${encodeURIComponent(JSON.stringify(idOrQuery))}`;
+    }
+
     const response = await fetch(url, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
@@ -63,6 +73,7 @@ export const select: Select = async (collection, id) => {
 
     return data;
 }
+
 
 export const update: Update = async (collection, id, row) => {
     const url = `${configuration.server}${collection}/${id}`;

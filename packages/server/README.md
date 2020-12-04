@@ -9,9 +9,9 @@ Include types for TypeScript.
 ## Features
 
 - The same interface in Node, Web, Mobile, Server or your own environment.
-- Automatic saving files to dictionary.
+- Handling saving and removing files directly in easy-db.
 - Easy reading and updating database without any special tool.
-- Handling files directly in easy-db.
+- MongoDB like queries for GET collection.
 
 ## CLI
 
@@ -47,6 +47,21 @@ const PORT = 80;
 app.listen(PORT, () => console.log(`Easy DB server is running at http://localhost:${PORT}.`));
 ```
 
+## REST API
+
+### Upload files by REST API
+
+Just sent to POST or PUT anywhere in the body `{ "type": "EASY_DB_FILE", "url": "data:image/png;base64,iVB...YI=" }`.
+With GET you will receive `{ "type": "EASY_DB_FILE", "url": "/easy-db-files/j9pSCplbMx7U.png" }`
+
+### MongoDB like query
+
+For documentation on using query operators see [MongoDB](https://docs.mongodb.com/manual/reference/operator/query/).
+
+```
+GET http://localhost:80/api/user?query={age:{$gt:18}}
+```
+
 ## Files
 
 * easy-db/
@@ -54,11 +69,6 @@ app.listen(PORT, () => console.log(`Easy DB server is running at http://localhos
   * collection1-wrong-20180912.json
 * easy-db-files/
   * j9pSCplbMx7U.png
-
-### Upload files by REST API
-
-Just sent to POST or PUT anywhere in the body `{ "type": "EASY_DB_FILE", "url": "data:image/png;base64,iVB...YI=" }`.
-With GET you will receive `{ "type": "EASY_DB_FILE", "url": "/easy-db-files/j9pSCplbMx7U.png" }`
 
 ### Update DB without code
 

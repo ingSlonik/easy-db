@@ -15,7 +15,7 @@ This database is NoSQL intended for developing and for less complex structures.
 | [Browser](https://github.com/ingSlonik/easy-db/tree/master/packages/browser)           | `npm install easy-db-browser`                             |
 | [React native](https://github.com/ingSlonik/easy-db/tree/master/packages/react-native) | `npm install easy-db-react-native`                        |
 | [Server](https://github.com/ingSlonik/easy-db/tree/master/packages/server)             | `npm install easy-db-server` or run `npx easy-db-server`  |
-| [Client](https://github.com/ingSlonik/easy-db/tree/master/packages/clinet)             | `npm install easy-db-client`                              |
+| [Client](https://github.com/ingSlonik/easy-db/tree/master/packages/client)             | `npm install easy-db-client`                              |
 
 Include types for TypeScript.
 

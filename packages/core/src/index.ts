@@ -1,15 +1,35 @@
 import queue from "./queue";
 import { getFile, replaceFileData, removeUpdatedFiles, File } from "./file";
+// import {} from "./cache";
 
 export type Id = string;
 export type Row = any;
 export type Data = { [id: string]: Row };
 
 export interface Backend {
+    // null is not use cache and number is in [ms]
+    cacheExpirationTime?: null | number,
     saveCollection: (name: string, data: Data) => Promise<void>;
     loadCollection: (name: string) => Promise<null | Data>;
     saveFile?: (base46: string) => Promise<string>;
     removeFile?: (path: string) => Promise<void>;
+};
+
+interface BackendInternal {
+    // queue for locking reading and writing configuration and data in the same time
+    queue: null | Promise<any>,
+    cache: any,
+    saveCollection: (name: string, data: Data) => Promise<void>;
+    loadCollection: (name: string) => Promise<null | Data>;
+    saveFile?: (base46: string) => Promise<string>;
+    removeFile?: (path: string) => Promise<void>;
+}
+export interface API {
+    file: (base64: string) => File;
+    insert: Insert;
+    select: Select;
+    update: Update;
+    remove: Remove;
 };
 
 export { File } from "./file";
@@ -28,13 +48,9 @@ export interface Remove {
 };
 
 
-// queue for locking reading and writing configuration and data in the same time
-let easyDBQueue = null;
-
-
 // helpers
 
-async function getData(backend: Backend, collectionName: string): Promise<Data> {
+async function getData(backend: BackendInternal, collectionName: string): Promise<Data> {
     const data = await backend.loadCollection(collectionName);
 
     if (data === null) {
@@ -44,13 +60,13 @@ async function getData(backend: Backend, collectionName: string): Promise<Data> 
     }
 }
 
-async function setData(backend: Backend, collectionName: string, data: Data): Promise<void> {
+async function setData(backend: BackendInternal, collectionName: string, data: Data): Promise<void> {
     await backend.saveCollection(collectionName, data);
 }
 
 // API
 
-async function insert(backend: Backend, collection: string, row: Row | ((id: Id) => Row)): Promise<Id> {
+async function insert(backend: BackendInternal, collection: string, row: Row | ((id: Id) => Row)): Promise<Id> {
     const wholeCollection = await getData(backend, collection);
 
     let newId = getRandomId();
@@ -77,12 +93,12 @@ async function insert(backend: Backend, collection: string, row: Row | ((id: Id)
 
     return newId;
 }
-async function queueInsert(backend: Backend, collection: string, row: Row | ((id: Id) => Row)): Promise<Id> {
-    easyDBQueue = queue(easyDBQueue, async () => await insert(backend, collection, row));
-    return await easyDBQueue;
+async function queueInsert(backend: BackendInternal, collection: string, row: Row | ((id: Id) => Row)): Promise<Id> {
+    backend.queue = queue(backend.queue, async () => await insert(backend, collection, row));
+    return await backend.queue;
 }
 
-async function select(backend: Backend, collection: string, id: null | Id): Promise<null | Row | Data> {
+async function select(backend: BackendInternal, collection: string, id: null | Id): Promise<null | Row | Data> {
     const wholeCollection = await getData(backend, collection);
 
     if (id === null) {
@@ -95,12 +111,12 @@ async function select(backend: Backend, collection: string, id: null | Id): Prom
         }
     }
 }
-async function queueSelect(backend: Backend, collection: string, id: null | Id): Promise<null | Row> {
-    easyDBQueue = queue(easyDBQueue, async () => await select(backend, collection, id));
-    return await easyDBQueue;
+async function queueSelect(backend: BackendInternal, collection: string, id: null | Id): Promise<null | Row> {
+    backend.queue = queue(backend.queue, async () => await select(backend, collection, id));
+    return await backend.queue;
 }
 
-async function update(backend: Backend, collection: string, id: Id, row: Row) {
+async function update(backend: BackendInternal, collection: string, id: Id, row: Row) {
     const wholeCollection = await getData(backend, collection);
     if (typeof backend.saveFile === "function" && typeof backend.removeFile === "function") {
         const rowWithReplacedFileData = await replaceFileData(
@@ -128,12 +144,12 @@ async function update(backend: Backend, collection: string, id: Id, row: Row) {
     }
     await setData(backend, collection, wholeCollection);
 }
-async function queueUpdate(backend: Backend, collection: string, id: Id, row: Row) {
-    easyDBQueue = queue(easyDBQueue, async () => await update(backend, collection, id, row));
-    return await easyDBQueue;
+async function queueUpdate(backend: BackendInternal, collection: string, id: Id, row: Row) {
+    backend.queue = queue(backend.queue, async () => await update(backend, collection, id, row));
+    return await backend.queue;
 }
 
-async function remove(backend: Backend, collection: string, id: Id) {
+async function remove(backend: BackendInternal, collection: string, id: Id) {
     const wholeCollection = await getData(backend, collection);
 
     if (typeof backend.removeFile === "function") {
@@ -153,35 +169,35 @@ async function remove(backend: Backend, collection: string, id: Id) {
 
     await setData(backend, collection, wholeCollection);
 }
-async function queueRemove(backend: Backend, collection: string, id: Id) {
-    easyDBQueue = queue(easyDBQueue, async () => await remove(backend, collection, id));
-    return await easyDBQueue;
+async function queueRemove(backend: BackendInternal, collection: string, id: Id) {
+    backend.queue = queue(backend.queue, async () => await remove(backend, collection, id));
+    return await backend.queue;
 }
 
 // export easyDB core
 
-export default (backend: Backend): {
-    file: (base64: string) => File,
-    insert: Insert,
-    select: Select,
-    update: Update,
-    remove: Remove,
-} => {
+export default (backend: Backend): API => {
+    const backendInternal: BackendInternal = {
+        ...backend,
+        queue: null,
+        cache: null,
+    };
+
     return {
         file(base64: string): File {
             return getFile(base64);
         },
         async insert(collection: string, row: Row | ((id: Id) => Row)) {
-            return await queueInsert(backend, collection, row);
+            return await queueInsert(backendInternal, collection, row);
         }, 
         async select(collection: string, id?: Id) {
-            return await queueSelect(backend, collection, typeof id === "string" ? id : null);
+            return await queueSelect(backendInternal, collection, typeof id === "string" ? id : null);
         },
         async update(collection: string, id: Id, row: Row) {
-            return await queueUpdate(backend, collection, id, row);
+            return await queueUpdate(backendInternal, collection, id, row);
         },
         async remove(collection: string, id: Id) {
-            return await queueRemove(backend, collection, id);
+            return await queueRemove(backendInternal, collection, id);
         }, 
     };
 };

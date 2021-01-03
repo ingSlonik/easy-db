@@ -38,13 +38,19 @@ Options:
 `app` variable is the `express` instance.
 
 ```js
-import { app } from "easy-db-server";
+import easyDBServer from "easy-db-server";
 // or
-const { app } = require("easy-db-server");
+const easyDBServer = require("easy-db-server");
 
 const PORT = 80;
 
-app.listen(PORT, () => console.log(`Easy DB server is running at http://localhost:${PORT}.`));
+const options = {
+  
+};
+
+easyDBServer(options, app => {
+  app.listen(PORT, () => console.log(`Easy DB server is running at http://localhost:${PORT}.`));
+});
 ```
 
 ## REST API

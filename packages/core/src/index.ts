@@ -5,18 +5,28 @@ export type Id = string;
 export type Row = any;
 export type Data = { [id: string]: Row };
 
-export type Backend = {
-    saveCollection: (name: string, data: Data) => Promise<void>,
-    loadCollection: (name: string) => Promise<null | Data>,
-    saveFile?: (base46: string) => Promise<string>,
-    removeFile?: (path: string) => Promise<void>,
+export interface Backend {
+    saveCollection: (name: string, data: Data) => Promise<void>;
+    loadCollection: (name: string) => Promise<null | Data>;
+    saveFile?: (base46: string) => Promise<string>;
+    removeFile?: (path: string) => Promise<void>;
 };
 
 export { File } from "./file";
-export type Insert = (collection: string, row: Row | ((id: Id) => Row)) => Promise<string>;
-export type Select = (collection: string, id?: Id) => Promise<Data | Row>;
-export type Update = (collection: string, id: Id, row: Row) => Promise<void>;
-export type Remove = (collection: string, id: Id) => Promise<void>;
+export interface Insert {
+    (collection: string, row: Row | ((id: Id) => Row)): Promise<string>; 
+};
+export interface Select {
+    (collection: string): Promise<{ [id: string]: Row }>;
+    (collection: string, id: string): Promise<null | Row>;
+};
+export interface Update {
+    (collection: string, id: Id, row: Row): Promise<void>;
+};
+export interface Remove {
+    (collection: string, id: Id): Promise<void>;
+};
+
 
 // queue for locking reading and writing configuration and data in the same time
 let easyDBQueue = null;
@@ -72,7 +82,7 @@ async function queueInsert(backend: Backend, collection: string, row: Row | ((id
     return await easyDBQueue;
 }
 
-async function select(backend: Backend, collection: string, id: null | Id): Promise<null | Row> {
+async function select(backend: Backend, collection: string, id: null | Id): Promise<null | Row | Data> {
     const wholeCollection = await getData(backend, collection);
 
     if (id === null) {

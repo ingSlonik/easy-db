@@ -7,7 +7,7 @@
  * With updating or removing will take care to replacing this tag.
  */
 
-import { Insert, Select, Update, Remove } from "./";
+import { Insert, Update, Remove } from "./";
 
 export type File = {
     id?: string,
@@ -55,13 +55,13 @@ export async function replaceFileData(
     rowId: string,
     replaceFile: (base64: string) => Promise<string>, 
     insert: Insert,
-    select: Select,
+    select: (collection: string, id: string) => Promise<null | FileRow>,
     update: Update,
 ): Promise<Data> {
     if (isFile(data)) {
         if (typeof data.id === "string") {
             // file is parsed
-            const fileRow: null | FileRow = await select(FILE_COLLECTION, data.id);
+            const fileRow = await select(FILE_COLLECTION, data.id);
             if (fileRow) {
                 // update FileRow for situation when is one file in more collections/rows
                 await update(FILE_COLLECTION, data.id, {
@@ -120,7 +120,7 @@ export async function removeUpdatedFiles(
     collection: string,
     rowId: string,
     removeFile: (filePath: string) => Promise<void>,
-    select: Select,
+    select: (collection: string, id: string) => Promise<null | FileRow>,
     update: Update,
     remove: Remove,
 ) {
@@ -136,7 +136,7 @@ export async function removeUpdatedFiles(
             // these files was in ond row and is not in new row
             if (typeof id === "string" && !isBase64(url)) {
                 // when was saved on this server
-                const fileRow: null | FileRow = await select(FILE_COLLECTION, id);
+                const fileRow = await select(FILE_COLLECTION, id);
                 if (fileRow) {
                     // remove this collection/worId from FileRow
                     const use = fileRow.use.filter(use => use.collection !== collection && use.rowId !== rowId);

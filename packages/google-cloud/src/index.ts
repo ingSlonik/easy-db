@@ -15,17 +15,19 @@ type Configuration = {
     bucketNameFiles?: string,
     projectId?: string,
     keyFilename?: string,
+    cacheExpirationTime?: number,
     readable?: boolean,
 };
 
 export default function easyDBGoogleCloud(configuration: Configuration) {
-    const { bucketName, bucketNameFiles, keyFilename, projectId, readable } = configuration;
+    const { bucketName, bucketNameFiles, keyFilename, projectId, readable, cacheExpirationTime } = configuration;
 
     const storage = new Storage({ keyFilename, projectId });
     const bucket = storage.bucket(bucketName);
     const bucketFiles = bucketNameFiles ? storage.bucket(bucketNameFiles) : null;
 
     return easyDB({
+        cacheExpirationTime,
         async saveCollection(name: string, data: Data) {
             const file = bucket.file(`${name}.json`);
             const fileContent = readable === true ? JSON.stringify(data, null, "    ") : JSON.stringify(data);

@@ -8,6 +8,7 @@ const { insert, select, update, remove, file } = easyDBGoogleCloud({
     keyFilename: resolve(__dirname, "keyFile.json"),
     bucketName: "easy-db-test",
     bucketNameFiles: "easy-db-files",
+    cacheExpirationTime: 10000,
 });
 
 const DUMMY_FILE_PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";

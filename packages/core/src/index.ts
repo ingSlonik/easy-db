@@ -1,6 +1,6 @@
 import queue from "./queue";
 import { getFile, replaceFileData, removeUpdatedFiles, File } from "./file";
-// import {} from "./cache";
+import Cache from "./cache";
 
 export type Id = string;
 export type Row = any;
@@ -18,7 +18,7 @@ export interface Backend {
 interface BackendInternal {
     // queue for locking reading and writing configuration and data in the same time
     queue: null | Promise<any>,
-    cache: any,
+    cache: null | Cache<Data>,
     saveCollection: (name: string, data: Data) => Promise<void>;
     loadCollection: (name: string) => Promise<null | Data>;
     saveFile?: (base46: string) => Promise<string>;
@@ -51,7 +51,9 @@ export interface Remove {
 // helpers
 
 async function getData(backend: BackendInternal, collectionName: string): Promise<Data> {
-    const data = await backend.loadCollection(collectionName);
+    const data = backend.cache ? 
+        await backend.cache.get(backend.loadCollection, collectionName) :
+        await backend.loadCollection(collectionName);
 
     if (data === null) {
         return {};
@@ -62,6 +64,8 @@ async function getData(backend: BackendInternal, collectionName: string): Promis
 
 async function setData(backend: BackendInternal, collectionName: string, data: Data): Promise<void> {
     await backend.saveCollection(collectionName, data);
+    if (backend.cache)
+        backend.cache.set(collectionName, data);
 }
 
 // API
@@ -177,10 +181,12 @@ async function queueRemove(backend: BackendInternal, collection: string, id: Id)
 // export easyDB core
 
 export default (backend: Backend): API => {
+    const { cacheExpirationTime, ...intersection } = backend;
+    
     const backendInternal: BackendInternal = {
-        ...backend,
+        ...intersection,
+        cache: cacheExpirationTime === null ? null : new Cache<Data>(cacheExpirationTime),
         queue: null,
-        cache: null,
     };
 
     return {

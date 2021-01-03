@@ -1,0 +1,7 @@
+lib/
+files/
+easy-db/
+node_modules/
+tests/keyFile.json
+.npmrc
+package-lock.json

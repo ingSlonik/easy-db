@@ -1,0 +1,41 @@
+{
+    "name": "easy-db-google-cloud",
+    "version": "1.5.0",
+    "description": "Lite&easy database for Google Cloud Storage.",
+    "main": "./lib/index.js",
+    "types": "./lib/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "test": "mocha -r ts-node/register tests/**/*.spec.ts --timeout 10000",
+        "prepublish": "npm run build"
+    },
+    "license": "MIT",
+    "devDependencies": {
+        "@types/chai": "^4.2.11",
+        "@types/mocha": "^7.0.2",
+        "@types/node": "^13.13.4",
+        "chai": "^4.2.0",
+        "cross-env": "^7.0.3",
+        "mocha": "^7.1.2",
+        "ts-node": "^8.9.1",
+        "typescript": "^3.8.3"
+    },
+    "dependencies": {
+        "@google-cloud/storage": "^5.7.0",
+        "easy-db-core": "^1.4.1"
+    },
+    "keywords": [
+        "easy&lite",
+        "database",
+        "json",
+        "google cloud"
+    ],
+    "author": "Filip Paulů <ing.fenix@seznam.cz>",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ingSlonik/easy-db.git"
+    },
+    "bugs": {
+        "url": "https://github.com/ingSlonik/easy-db/issues"
+    }
+}

@@ -91,12 +91,12 @@ function writeFile(file: File, fileContent: string | Buffer, contentType: string
         })
             .on("error", err => {
                 // TODO: Reduce multiple queries in quick succession.
-                if (err.message.includes("The rate of change requests to the object") && err.message.includes("exceeds the rate limit") && repetition < 10) {
+                if (err.message.includes("The rate of change requests to the object") && err.message.includes("exceeds the rate limit") && repetition < 12) {
                     setTimeout(() => {
                         writeFile(file, fileContent, contentType, dbFile, repetition + 1)
                             .then(resolve)
                             .catch(reject);
-                    }, 100);
+                    }, 250);
                 } else {
                     reject(err);
                 }

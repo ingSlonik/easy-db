@@ -1,6 +1,6 @@
 import { resolve, basename } from "path";
 import { promises, existsSync } from "fs";
-const { readFile, mkdir, writeFile, unlink } = promises;
+const { readFile, mkdir, writeFile, rename, unlink } = promises;
 
 import { getExtension } from "mime";
 import easyDB, { getRandomId, Data } from "easy-db-core";
@@ -52,7 +52,10 @@ export const { insert, select, update, remove, file } = easyDB({
                     return null;
                 }
             } catch (e) {
-                // TODO: save inconsistent data
+                // save inconsistent data
+                const wrongFileName = `${name}-wrong-${new Date().toISOString()}.json`;
+                await rename(file, resolve(configuration.folderDB, wrongFileName));
+                console.error(`Collection "${name}" is not parsable. It is save to "${wrongFileName}".`);
                 return null;
             }
         } else {

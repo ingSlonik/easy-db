@@ -50,7 +50,11 @@ export default function easyDBGoogleCloud(configuration: Configuration) {
                         return null;
                     }
                 } catch (e) {
-                    // TODO: save inconsistent data
+                    // save inconsistent data
+                    const wrongFileName = `${name}-wrong-${new Date().toISOString()}.json`;
+                    const wrongFile = bucket.file(wrongFileName);
+                    await writeFile(wrongFile, content, "application/json", false);
+                    console.error(`Collection "${name}" is not parsable. It is save to "${wrongFileName}".`);
                     return null;
                 }
             } else {

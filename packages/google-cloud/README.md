@@ -2,8 +2,6 @@
 
 Lite&easy database for Node.js, based on `easy-db-code`.
 
-> I recommend use this tool exclusively for developing or small projects.
-
 Include types for TypeScript.
 
 ## Features
@@ -15,12 +13,13 @@ Include types for TypeScript.
 ## API
 
 ```js
-import easyDBGoogleCloud from "easy-db-google-cloud";
+import easyDB from "easy-db-google-cloud";
 
-const { insert, select, update, remove, file } = easyDBGoogleCloud({
+const { insert, select, update, remove, file } = easyDB({
   bucketName: "easy-db-test",
-  bucketNameFiles: "easy-db-files", // optional
-  keyFilename: "keyFile.json", // for remote development
+  bucketNameFiles: "easy-db-files", // optional, for allUser access to saved files
+  keyFilename: "keyFile.json", // optional, for remote development
+  cacheExpirationTime: 1000, // optional but recommended, it will save a lot of read requests to cloud
 });
 
 // INSERT
@@ -70,10 +69,9 @@ const user = await select("myAppName", "user");
 
 ## Files
 
-- easy-db/
+- easy-db-bucket
   - collection1.json
-  - collection1-wrong-20180912.json
-- easy-db-files/
+- easy-db-files-bucket
   - j9pSCplbMx7U.png
 
 ### Update DB without code

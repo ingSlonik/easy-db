@@ -2,13 +2,13 @@ import { resolve } from "path";
 
 import { assert } from "chai";
 
-import easyDBGoogleCloud from "../src/index";
+import easyDB from "../src/index";
 
-const { insert, select, update, remove, file } = easyDBGoogleCloud({
+const { insert, select, update, remove, file } = easyDB({
     keyFilename: resolve(__dirname, "keyFile.json"),
     bucketName: "easy-db-test",
     bucketNameFiles: "easy-db-files",
-    cacheExpirationTime: 10000,
+    cacheExpirationTime: 1000,
 });
 
 const DUMMY_FILE_PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";

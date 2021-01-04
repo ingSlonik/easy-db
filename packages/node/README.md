@@ -2,8 +2,6 @@
 
 Lite&easy database for Node.js, based on `easy-db-code`.
 
-> I recommend use this tool exclusively for developing or small projects.
-
 Include types for TypeScript.
 
 ## Features
@@ -19,7 +17,7 @@ import { insert, select, update, remove, file } from "easy-db-node";
 
 // INSERT
 const idOfRow = await insert("collection1", { myRow: 1 });
-const idOfRow = await insert("collection1", id => ({ id, myRow: 1 }));
+const idOfRow = await insert("collection1", (id) => ({ id, myRow: 1 }));
 
 // SELECT
 const allCollection1 = await select("collection1");
@@ -37,7 +35,7 @@ await remove("collection1", idOfRow); // only one row
 ```js
 import { select, update } from "easy-db-node";
 
-// Save nickname 
+// Save nickname
 await update("myAppName", "nickname", nickname);
 
 // Load nickname
@@ -45,21 +43,22 @@ const nickname = await select("myAppName", "nickname");
 ```
 
 ### File saving as url
+
 ```js
 import { select, update, file, configure } from "easy-db-node";
 
 configure({ fileFolder: "files", fileUrl: "/files" });
 
-// Save user with picture 
+// Save user with picture
 await update("myAppName", "user", {
-    name: "Example User",
-    // any file in base64
-    photo: file("data:image/png;base64,iVB...YI="),
-    // or
-   photo: {
-        type: "EASY_DB_FILE",
-        url: "data:image/png;base64,iVB...YI=",
-    },
+  name: "Example User",
+  // any file in base64
+  photo: file("data:image/png;base64,iVB...YI="),
+  // or
+  photo: {
+    type: "EASY_DB_FILE",
+    url: "data:image/png;base64,iVB...YI=",
+  },
 });
 
 // Load with picture
@@ -69,11 +68,11 @@ const user = await select("myAppName", "user");
 
 ## Files
 
-* easy-db/
-  * collection1.json
-  * collection1-wrong-20180912.json
-* easy-db-files/
-  * j9pSCplbMx7U.png
+- easy-db/
+  - collection1.json
+  - collection1-wrong-20180912.json
+- easy-db-files/
+  - j9pSCplbMx7U.png
 
 ### Update DB without code
 
@@ -83,7 +82,7 @@ Only open file and edit them.
 
 ```json
 {
-    "j9pSCplbMx7U" : { "myRow": 1, "update": 1 },
-    "ukAK0wN8xvwK" : { "myRow": 2, "update": 36 }
+  "j9pSCplbMx7U": { "myRow": 1, "update": 1 },
+  "ukAK0wN8xvwK": { "myRow": 2, "update": 36 }
 }
 ```

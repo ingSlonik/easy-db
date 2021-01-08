@@ -20,6 +20,7 @@ const { insert, select, update, remove, file } = easyDB({
   bucketNameFiles: "easy-db-files", // optional, for allUser access to saved files
   keyFilename: "keyFile.json", // optional, for remote development
   cacheExpirationTime: 1000, // optional but recommended, it will save a lot of read requests to cloud
+  distanceWriteFileTime: 100, // optional but recommended if you have low limit for create or update files
 });
 
 // INSERT

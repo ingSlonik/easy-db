@@ -31,8 +31,9 @@ export default function easyDBGoogleCloud(configuration: Configuration) {
         async saveCollection(name: string, data: Data) {
             const file = bucket.file(`${name}.json`);
             const fileContent = readable === true ? JSON.stringify(data, null, "    ") : JSON.stringify(data);
+            const bufferContent = Buffer.from(fileContent, "utf8");
 
-            await writeFile(file, fileContent, "application/json", false);
+            await writeFile(file, bufferContent, "application/json", false);
             return;
         },
         async loadCollection(name: string): Promise<null | Data> {
@@ -53,7 +54,8 @@ export default function easyDBGoogleCloud(configuration: Configuration) {
                     // save inconsistent data
                     const wrongFileName = `${name}-wrong-${new Date().toISOString()}.json`;
                     const wrongFile = bucket.file(wrongFileName);
-                    await writeFile(wrongFile, content, "application/json", false);
+                    const wrongBufferContent = Buffer.from(content, "utf8");
+                    await writeFile(wrongFile, wrongBufferContent, "application/json", false);
                     console.error(`Collection "${name}" is not parsable. It is save to "${wrongFileName}".`);
                     return null;
                 }
@@ -82,7 +84,7 @@ export default function easyDBGoogleCloud(configuration: Configuration) {
     });
 }
 
-function writeFile(file: File, fileContent: string | Buffer, contentType: string, dbFile: boolean, repetition = 0): Promise<void> {
+function writeFile(file: File, fileContent: Buffer, contentType: string, dbFile: boolean, repetition = 0): Promise<void> {
     return new Promise((resolve, reject) => {
         file.createWriteStream({
             resumable: false,
@@ -110,17 +112,17 @@ function writeFile(file: File, fileContent: string | Buffer, contentType: string
 
 function readFile(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
-        let data = "";
+        let buffer = Buffer.alloc(0);
 
         file.createReadStream()
             .on("error", err => {
                 reject(err);
             })
             .on("data", chunk => {
-                data += chunk;
+                buffer = Buffer.concat([buffer, chunk]);
             })
             .on("end", () => {
-                resolve(data);
+                resolve(buffer.toString("utf8"));
             })
             .read();
     });

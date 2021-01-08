@@ -1,6 +1,6 @@
-import queue from "./queue";
-import { getFile, replaceFileData, removeUpdatedFiles, File } from "./file";
 import Cache from "./cache";
+import { addToQueue } from "./queue";
+import { getFile, replaceFileData, removeUpdatedFiles, File } from "./file";
 
 export type Id = string;
 export type Row = any;
@@ -98,7 +98,7 @@ async function insert(backend: BackendInternal, collection: string, row: Row | (
     return newId;
 }
 async function queueInsert(backend: BackendInternal, collection: string, row: Row | ((id: Id) => Row)): Promise<Id> {
-    backend.queue = queue(backend.queue, async () => await insert(backend, collection, row));
+    backend.queue = addToQueue(backend.queue, async () => await insert(backend, collection, row));
     return await backend.queue;
 }
 
@@ -116,7 +116,7 @@ async function select(backend: BackendInternal, collection: string, id: null | I
     }
 }
 async function queueSelect(backend: BackendInternal, collection: string, id: null | Id): Promise<null | Row> {
-    backend.queue = queue(backend.queue, async () => await select(backend, collection, id));
+    backend.queue = addToQueue(backend.queue, async () => await select(backend, collection, id));
     return await backend.queue;
 }
 
@@ -149,7 +149,7 @@ async function update(backend: BackendInternal, collection: string, id: Id, row:
     await setData(backend, collection, wholeCollection);
 }
 async function queueUpdate(backend: BackendInternal, collection: string, id: Id, row: Row) {
-    backend.queue = queue(backend.queue, async () => await update(backend, collection, id, row));
+    backend.queue = addToQueue(backend.queue, async () => await update(backend, collection, id, row));
     return await backend.queue;
 }
 
@@ -174,11 +174,13 @@ async function remove(backend: BackendInternal, collection: string, id: Id) {
     await setData(backend, collection, wholeCollection);
 }
 async function queueRemove(backend: BackendInternal, collection: string, id: Id) {
-    backend.queue = queue(backend.queue, async () => await remove(backend, collection, id));
+    backend.queue = addToQueue(backend.queue, async () => await remove(backend, collection, id));
     return await backend.queue;
 }
 
 // export easyDB core
+export { addToQueue } from "./queue";
+export { getFile as file } from "./file";
 
 export default (backend: Backend): API => {
     const { cacheExpirationTime, ...intersection } = backend;

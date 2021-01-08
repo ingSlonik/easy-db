@@ -1,6 +1,6 @@
 {
     "name": "easy-db-server",
-    "version": "1.8.0",
+    "version": "1.8.1",
     "description": "Lite&easy database for Node.js.",
     "main": "./lib/index.js",
     "types": "./lib/index.d.ts",
@@ -28,7 +28,7 @@
     },
     "dependencies": {
         "cors": "^2.8.5",
-        "easy-db-node": "^1.8.0",
+        "easy-db-node": "^1.8.1",
         "express": "^4.17.1",
         "mingo": "^3.1.0",
         "yargs": "^16.0.3"

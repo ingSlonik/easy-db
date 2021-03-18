@@ -44,10 +44,19 @@ const { app } = require("easy-db-server");
 
 const PORT = 80;
 
-app.listen(PORT, () => console.log(`Easy DB server is running at http://localhost:${PORT}.`));
+app.listen(PORT, () =>
+  console.log(`Easy DB server is running at http://localhost:${PORT}.`)
+);
 ```
 
 ## REST API
+
+- `GET /api/:collection`: return whole collection
+- `GET /api/:collection/:id`: return one row from collection by id
+- `POST /api/:collection`: create row with random id `string` and return id
+- `PUT /api/:collection/:id`: replace row from collection by id
+- `PATCH /api/:collection/:id`: update row (shallow merge) from collection by id
+- `DELETE /api/:collection/:id`: remove whole row from collection by id
 
 ### Upload files by REST API
 
@@ -64,11 +73,11 @@ GET http://localhost:80/api/user?query={age:{$gt:18}}
 
 ## Files
 
-* easy-db/
-  * collection1.json
-  * collection1-wrong-20180912.json
-* easy-db-files/
-  * j9pSCplbMx7U.png
+- easy-db/
+  - collection1.json
+  - collection1-wrong-20180912.json
+- easy-db-files/
+  - j9pSCplbMx7U.png
 
 ### Update DB without code
 
@@ -78,7 +87,7 @@ Only open file and edit them.
 
 ```json
 {
-    "LnldbDWRXe8r" : { "myRow": 1, "update": 1 },
-    "UXnuhpl5RvVp" : { "myRow": 2, "update": 36 }
+  "LnldbDWRXe8r": { "myRow": 1, "update": 1 },
+  "UXnuhpl5RvVp": { "myRow": 2, "update": 36 }
 }
 ```

@@ -38,7 +38,7 @@ describe('Easy DB server', () => {
             const body = res.body;
             assert.equal(res.status, 200);
             assert.isArray(body);
-            body.forEach(value => assert.deepEqual(getRowWithoutId(value), query));
+            body.forEach(value => assert.include(getRowWithoutId(value), query));
             done();
         });
     });
@@ -58,7 +58,7 @@ describe('Easy DB server', () => {
             const body = res.body;
             assert.equal(res.status, 200);
             assert.isNotArray(body);
-            Object.values(body).forEach(value => assert.deepEqual(value, query));
+            Object.values(body).forEach(value => assert.include(value, query));
             done();
         });
     });
@@ -100,6 +100,25 @@ describe('Easy DB server', () => {
                 request(server).get(`/api/test/${id}`).end((err, res) => {
                     const body = res.body;
                     assert.deepEqual(body, putItem);
+                    done();
+                });
+            });
+        });
+    });
+
+    it('PATCH', (done) => {
+        const item = { a: "Item1" };
+        const putItem = { b: "Item2" };
+
+        request(server).post("/api/test").send(item).end((err, res) => {
+            const id = res.body;
+            assert.equal(res.status, 200);
+            assert.isString(id);
+
+            request(server).patch(`/api/test/${id}`).send(putItem).end((err, res) => {
+                request(server).get(`/api/test/${id}`).end((err, res) => {
+                    const body = res.body;
+                    assert.deepEqual(body, { ...item, ...putItem });
                     done();
                 });
             });

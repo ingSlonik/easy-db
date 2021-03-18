@@ -74,6 +74,15 @@ app.put("/api/:collection/:id", async (req, res) => {
     res.send(JSON.stringify(null));
 });
 
+app.patch("/api/:collection/:id", async (req, res) => {
+    const { collection, id } = req.params;
+    const row = await select(collection, id);
+
+    await update(collection, id, { ...row, ...req.body });
+    res.type("json");
+    res.send(JSON.stringify(null));
+});
+
 app.delete("/api/:collection/:id", async (req, res) => {
     const { collection, id } = req.params;
     await remove(collection, id);

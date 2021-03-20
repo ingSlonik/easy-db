@@ -28,9 +28,10 @@ Usage: easy-db-server --port <port> -html ./index.html
 
 Options:
       --help     Show help                                             [boolean]
-      --version  Show version number                                   [boolean]
-  -p, --port     PORT                                                   [number]
-  -h, --html     Index HTML file                                        [string]
+      --version        Show version number                             [boolean]
+  -p, --port           PORT                                             [number]
+  -h, --html           Index HTML file                                  [string]
+  -t, --easy-db-token  Security token                                   [string]
 ```
 
 ## Code
@@ -38,11 +39,17 @@ Options:
 `app` variable is the `express` instance.
 
 ```js
-import { app } from "easy-db-server";
+import { express, useCors, useToken, useEasyDB } from "easy-db-server";
 // or
-const { app } = require("easy-db-server");
+const { express, useCors, useToken, useEasyDB } = require("easy-db-server");
 
 const PORT = 80;
+
+const app = express();
+
+useCors(app);
+useToken(app, "takenHash");
+useEasyDB(app);
 
 app.listen(PORT, () =>
   console.log(`Easy DB server is running at http://localhost:${PORT}.`)

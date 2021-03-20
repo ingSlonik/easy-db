@@ -1,4 +1,7 @@
+const TOKEN = "secretToken";
+
 process.env.NODE_ENV = "test";
+process.env.EASY_DB_TOKEN = TOKEN;
 
 import { assert, use, request } from "chai";
 import chaiHttp from "chai-http";
@@ -23,8 +26,22 @@ describe('Easy DB server', () => {
         });
     });
 
+    it('easy-db token', (done) => {
+        request(server).get("/api/test").set("Easy-DB-Token", TOKEN).end((err, res) => {
+            assert.equal(res.status, 200);
+            done();
+        });
+    });
+
+    it('easy-db wrong token', (done) => {
+        request(server).get("/api/test").set("Easy-DB-Token", "wrongToken").end((err, res) => {
+            assert.equal(res.status, 401);
+            done();
+        });
+    });
+
     it('GET all', (done) => {
-        request(server).get("/api/test").end((err, res) => {
+        request(server).get("/api/test").set("Easy-DB-Token", TOKEN).end((err, res) => {
             const body = res.body;
             assert.equal(res.status, 200);
             assert.isArray(body);
@@ -34,7 +51,7 @@ describe('Easy DB server', () => {
 
     it('GET all with MongoDB like query', (done) => {
         const query = { b: "Item2" };
-        request(server).get(`/api/test?query=${JSON.stringify(query)}`).end((err, res) => {
+        request(server).get(`/api/test?query=${JSON.stringify(query)}`).set("Easy-DB-Token", TOKEN).end((err, res) => {
             const body = res.body;
             assert.equal(res.status, 200);
             assert.isArray(body);
@@ -44,7 +61,7 @@ describe('Easy DB server', () => {
     });
 
     it('GET all as easy-db-client', (done) => {
-        request(server).get("/api/test?easy-db-client=true").end((err, res) => {
+        request(server).get("/api/test?easy-db-client=true").set("Easy-DB-Token", TOKEN).end((err, res) => {
             const body = res.body;
             assert.equal(res.status, 200);
             assert.isNotArray(body);
@@ -54,7 +71,7 @@ describe('Easy DB server', () => {
 
     it('GET all as easy-db-client with MongoDB like query', (done) => {
         const query = { b: "Item2" };
-        request(server).get(`/api/test?easy-db-client=true&query=${JSON.stringify(query)}`).end((err, res) => {
+        request(server).get(`/api/test?easy-db-client=true&query=${JSON.stringify(query)}`).set("Easy-DB-Token", TOKEN).end((err, res) => {
             const body = res.body;
             assert.equal(res.status, 200);
             assert.isNotArray(body);
@@ -64,7 +81,7 @@ describe('Easy DB server', () => {
     });
 
     it('GET all with wrong MongoDB like query', (done) => {
-        request(server).get(`/api/test?easy-db-client=true&query=abc`).end((err, res) => {
+        request(server).get(`/api/test?easy-db-client=true&query=abc`).set("Easy-DB-Token", TOKEN).end((err, res) => {
             assert.equal(res.status, 400);
             assert.include(res.text, "JSON");
             done();
@@ -74,12 +91,12 @@ describe('Easy DB server', () => {
     it('POST and GET one', (done) => {
         const item = { a: "Item1" };
 
-        request(server).post("/api/test").send(item).end((err, res) => {
+        request(server).post("/api/test").set("Easy-DB-Token", TOKEN).send(item).end((err, res) => {
             const id = res.body;
             assert.equal(res.status, 200);
             assert.isString(id);
 
-            request(server).get(`/api/test/${id}`).end((err, res) => {
+            request(server).get(`/api/test/${id}`).set("Easy-DB-Token", TOKEN).end((err, res) => {
                 const body = res.body;
                 assert.deepEqual(body, item);
                 done();
@@ -91,13 +108,13 @@ describe('Easy DB server', () => {
         const item = { a: "Item1" };
         const putItem = { b: "Item2" };
 
-        request(server).post("/api/test").send(item).end((err, res) => {
+        request(server).post("/api/test").set("Easy-DB-Token", TOKEN).send(item).end((err, res) => {
             const id = res.body;
             assert.equal(res.status, 200);
             assert.isString(id);
 
-            request(server).put(`/api/test/${id}`).send(putItem).end((err, res) => {
-                request(server).get(`/api/test/${id}`).end((err, res) => {
+            request(server).put(`/api/test/${id}`).set("Easy-DB-Token", TOKEN).send(putItem).end((err, res) => {
+                request(server).get(`/api/test/${id}`).set("Easy-DB-Token", TOKEN).end((err, res) => {
                     const body = res.body;
                     assert.deepEqual(body, putItem);
                     done();
@@ -110,13 +127,13 @@ describe('Easy DB server', () => {
         const item = { a: "Item1" };
         const putItem = { b: "Item2" };
 
-        request(server).post("/api/test").send(item).end((err, res) => {
+        request(server).post("/api/test").set("Easy-DB-Token", TOKEN).send(item).end((err, res) => {
             const id = res.body;
             assert.equal(res.status, 200);
             assert.isString(id);
 
-            request(server).patch(`/api/test/${id}`).send(putItem).end((err, res) => {
-                request(server).get(`/api/test/${id}`).end((err, res) => {
+            request(server).patch(`/api/test/${id}`).set("Easy-DB-Token", TOKEN).send(putItem).end((err, res) => {
+                request(server).get(`/api/test/${id}`).set("Easy-DB-Token", TOKEN).end((err, res) => {
                     const body = res.body;
                     assert.deepEqual(body, { ...item, ...putItem });
                     done();
@@ -128,13 +145,13 @@ describe('Easy DB server', () => {
     it('DELETE', (done) => {
         const item = { a: "Item DELETE" };
 
-        request(server).post("/api/test").send(item).end((err, res) => {
+        request(server).post("/api/test").set("Easy-DB-Token", TOKEN).send(item).end((err, res) => {
             const id = res.body;
             assert.equal(res.status, 200);
             assert.isString(id);
 
-            request(server).delete(`/api/test/${id}`).end((err, res) => {
-                request(server).get(`/api/test/${id}`).end((err, res) => {
+            request(server).delete(`/api/test/${id}`).set("Easy-DB-Token", TOKEN).end((err, res) => {
+                request(server).get(`/api/test/${id}`).set("Easy-DB-Token", TOKEN).end((err, res) => {
                     const body = res.body;
                     assert.deepEqual(body, null);
                     done();
@@ -146,12 +163,12 @@ describe('Easy DB server', () => {
     it('add file', (done) => {
         const item = { photo: { "type": "EASY_DB_FILE", "url": DUMMY_FILE } };
 
-        request(server).post("/api/test").send(item).end((err, res) => {
+        request(server).post("/api/test").set("Easy-DB-Token", TOKEN).send(item).end((err, res) => {
             const id = res.body;
             assert.equal(res.status, 200);
             assert.isString(id);
 
-            request(server).get(`/api/test/${id}`).end((err, res) => {
+            request(server).get(`/api/test/${id}`).set("Easy-DB-Token", TOKEN).end((err, res) => {
                 const body = res.body;
                 assert.isString(body.photo.url);
                 assert.notEqual(body.photo.url, item.photo.url);
@@ -163,16 +180,16 @@ describe('Easy DB server', () => {
     it('save file to different row', (done) => {
         const item = { photo: { "type": "EASY_DB_FILE", "url": DUMMY_FILE } };
 
-        request(server).post("/api/test").send(item).end((err, res) => {
+        request(server).post("/api/test").set("Easy-DB-Token", TOKEN).send(item).end((err, res) => {
             const id = res.body;
 
-            request(server).get(`/api/test/${id}`).end((err, res) => {
+            request(server).get(`/api/test/${id}`).set("Easy-DB-Token", TOKEN).end((err, res) => {
                 const body = res.body;
 
-                request(server).post("/api/test").send(body).end((err, res) => {
+                request(server).post("/api/test").set("Easy-DB-Token", TOKEN).send(body).end((err, res) => {
                     const id2 = res.body;
         
-                    request(server).get(`/api/test/${id2}`).end((err, res) => {
+                    request(server).get(`/api/test/${id2}`).set("Easy-DB-Token", TOKEN).end((err, res) => {
                         const body2 = res.body;
 
                         assert.equal(body.photo.url, body2.photo.url);

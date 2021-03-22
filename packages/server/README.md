@@ -65,6 +65,10 @@ app.listen(PORT, () =>
 - `PATCH /api/:collection/:id`: update row (shallow merge) from collection by id
 - `DELETE /api/:collection/:id`: remove whole row from collection by id
 
+### Token
+
+Use header `Easy-DB-Token` for your token.
+
 ### Upload files by REST API
 
 Just sent to POST or PUT anywhere in the body `{ "type": "EASY_DB_FILE", "url": "data:image/png;base64,iVB...YI=" }`.

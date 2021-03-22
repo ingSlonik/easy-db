@@ -13,7 +13,7 @@ Include types for TypeScript.
 ```js
 import { insert, select, update, remove, file, configure } from "easy-db-client";
 
-configure({ server: "https://example.com/api/" });
+configure({ server: "https://example.com/api/", token: "secretToken" });
 
 // INSERT
 const idOfRow = await insert("collection1", { myRow: 1 });

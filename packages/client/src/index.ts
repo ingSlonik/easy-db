@@ -14,12 +14,30 @@ export type Select = (collection: string, idOrQuery?: Id | object) => Promise<Ro
 export type Update = (collection: string, id: Id, row: Row) => Promise<void>;
 export type Remove = (collection: string, id: Id) => Promise<void>;
 
-const configuration = {
-    server: "http://localhost:80/api/"
+type Configuration = {
+    server: string,
+    token: null | string,
 };
 
-export function configure({ server }: { server: string }) {
+const configuration: Configuration = {
+    server: "http://localhost:80/api/",
+    token: null,
+};
+
+function getHeaders(): { [header: string]: string } {
+    if (typeof configuration.token === "string") {
+        return {
+            "Content-Type": "application/json",
+            "Easy-DB-Token": configuration.token,
+        };
+    } else {
+        return { "Content-Type": "application/json" };
+    }
+}
+
+export function configure({ server, token }: { server: string, token?: string }) {
     configuration.server = server;
+    configuration.token = token || null;
 }
 
 export function file(url: string): File {
@@ -40,7 +58,7 @@ export const insert: Insert = async (collection, row) => {
         const url = `${configuration.server}${collection}`;
         const response = await fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: getHeaders(),
             body: JSON.stringify(row),
         });
         const id = await response.json();
@@ -67,7 +85,7 @@ export const select: Select = async (collection, idOrQuery) => {
 
     const response = await fetch(url, {
         method: "GET",
-        headers: { "Content-Type": "application/json" },
+        headers: getHeaders(),
     });
     const data = await response.json();
 
@@ -79,7 +97,7 @@ export const update: Update = async (collection, id, row) => {
     const url = `${configuration.server}${collection}/${id}`;
     const response = await fetch(url, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: getHeaders(),
         body: JSON.stringify(row),
     });
 }
@@ -88,6 +106,6 @@ export const remove: Remove = async (collection, id) => {
     const url = `${configuration.server}${collection}/${id}`;
     const response = await fetch(url, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: getHeaders(),
     });
 }

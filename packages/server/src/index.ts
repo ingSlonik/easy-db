@@ -7,7 +7,12 @@ import { select, insert, update, remove } from "easy-db-node";
 export { default as express } from "express";
 
 export function useCors(app: Express) {
-    app.use(cors());
+    app.use(cors({
+        allowedHeaders: [
+            "Authorization",
+            "Easy-DB-Token"
+        ],
+    }));
 }
 
 export function useToken(app: Express, token: string) {

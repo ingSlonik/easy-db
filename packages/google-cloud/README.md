@@ -48,6 +48,25 @@ await update("myAppName", "nickname", nickname);
 const nickname = await select("myAppName", "nickname");
 ```
 
+## Google cloud configuration
+
+### Creating bucket
+
+- With creating bucket for files:
+  - Select `uniform` Access control.
+- Set permission for read for all users.
+  - In bucket set `Permissions` and `+ add` user.
+  - Set `allUsers` in `New members`.
+  - Set `Role` as Reader for whole bucket.
+  - Click `SAVE`.
+
+### Get `keyFile.json`
+
+- Go to `Service Accounts` in Google cloud console.
+- Three dots and `Manage keys`.
+- Button `ADD KEY` and `JSON`.
+- Thats all folks.
+
 ### File saving as url
 
 ```js

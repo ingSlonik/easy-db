@@ -175,8 +175,16 @@ function getFilesFromData(data: Data, files: File[] = []): File[] {
 }
 
 // Source: https://github.com/miguelmota/is-base64/blob/master/is-base64.js
-const regexIsBase64 = new RegExp("^(data:\\w+\\/[a-zA-Z\\+\\-\\.]+;base64,)(?:[A-Za-z0-9+\\/]{4})*(?:[A-Za-z0-9+\\/]{2}==|[A-Za-z0-9+\/]{3}=)?$", "gi");
+const regexFullIsBase64 = new RegExp("^(data:\\w+\\/[a-zA-Z\\+\\-\\.]+;base64,)(?:[A-Za-z0-9+\\/]{4})*(?:[A-Za-z0-9+\\/]{2}==|[A-Za-z0-9+\/]{3}=)?$", "gi");
+// Source: https://github.com/MrRio/jsPDF/issues/1795
+const regexLightIsBase64 = new RegExp("data:([\\w]+?\/([\\w]+?));base64,(.+)$", "gi");
 function isBase64(base64: string): boolean {
-    regexIsBase64.lastIndex = 0;
-    return regexIsBase64.test(base64);
+    if (base64.length < 10e5) {
+        regexFullIsBase64.lastIndex = 0;
+        return regexFullIsBase64.test(base64);
+    } else {
+        // The regexFullIsBase64 has O(n) = n², that cause `RangeError: Maximum call stack size exceeded` for big base64
+        regexLightIsBase64.lastIndex = 0;
+        return regexLightIsBase64.test(base64);
+    }
 }

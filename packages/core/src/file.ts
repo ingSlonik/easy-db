@@ -7,7 +7,7 @@
  * With updating or removing will take care to replacing this tag.
  */
 
-import { Insert, Update, Remove } from "./";
+import { Insert, Update, Remove, Row } from "./";
 
 export type File = {
     id?: string,
@@ -41,6 +41,21 @@ function isFile(data: Data): boolean {
     }
 }
 
+function isFileRow(row: any): row is FileRow {
+    if (
+        row
+        && row !== null
+        && typeof row === "object"
+        && typeof row.id === "string"
+        && typeof row.url === "string"
+        && Array.isArray(row.use)
+    ) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 export function getFile(url: string): File { 
     return {
         id: null,
@@ -55,14 +70,14 @@ export async function replaceFileData(
     rowId: string,
     replaceFile: (base64: string) => Promise<string>, 
     insert: Insert,
-    select: (collection: string, id: string) => Promise<null | FileRow>,
+    select: (collection: string, id: string) => Promise<null | Row>,
     update: Update,
 ): Promise<Data> {
     if (isFile(data)) {
         if (typeof data.id === "string") {
             // file is parsed
             const fileRow = await select(FILE_COLLECTION, data.id);
-            if (fileRow) {
+            if (isFileRow(fileRow)) {
                 // update FileRow for situation when is one file in more collections/rows
                 await update(FILE_COLLECTION, data.id, {
                     ...fileRow,
@@ -120,7 +135,7 @@ export async function removeUpdatedFiles(
     collection: string,
     rowId: string,
     removeFile: (filePath: string) => Promise<void>,
-    select: (collection: string, id: string) => Promise<null | FileRow>,
+    select: (collection: string, id: string) => Promise<null | Row>,
     update: Update,
     remove: Remove,
 ) {
@@ -137,7 +152,7 @@ export async function removeUpdatedFiles(
             if (typeof id === "string" && !isBase64(url)) {
                 // when was saved on this server
                 const fileRow = await select(FILE_COLLECTION, id);
-                if (fileRow) {
+                if (isFileRow(fileRow)) {
                     // remove this collection/worId from FileRow
                     const use = fileRow.use.filter(use => use.collection !== collection && use.rowId !== rowId);
 

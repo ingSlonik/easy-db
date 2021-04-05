@@ -28,7 +28,7 @@ describe('Easy DB Core', () => {
     });
 
     it('select all', async () => {
-        const testData = { [1]: "Hi" };
+        const testData = { "id": { "hello": "World" } };
         const easyDB = easyDBCore({
             async saveCollection(name: string, data: Data) { },
             async loadCollection(name: string): Promise<null | Data> { 
@@ -44,7 +44,7 @@ describe('Easy DB Core', () => {
     });
 
     it('select', async () => {
-        const testData = { [1]: "Hi" };
+        const testData = { "id": { "hello": "World" } };
         const easyDB = easyDBCore({
             async saveCollection(name: string, data: Data) { },
             async loadCollection(name: string): Promise<null | Data> { 
@@ -56,19 +56,20 @@ describe('Easy DB Core', () => {
             },
         });
 
-        const data = await easyDB.select("test", "1");
-        assert.equal(data, "Hi");
+        const data = await easyDB.select("test", "id");
+        assert.deepEqual(data, testData.id);
     });
 
     it('update', async () => {
+        const testData = { "id": { "hello": "World" } };
         const easyDB = easyDBCore({
             async saveCollection(name: string, data: Data) { 
                 assert.equal(name, "test");
-                assert.deepEqual(data, { [1]: "Hi" });
+                assert.deepEqual(data, testData);
             },
             async loadCollection(name: string): Promise<null | Data> { return null; },
         });
-        const data = await easyDB.update("test", "1", "Hi");
+        const data = await easyDB.update("test", "id", testData.id);
     });
 
     it('remove', async () => {
@@ -76,16 +77,16 @@ describe('Easy DB Core', () => {
             async saveCollection(name: string, data: Data) { 
                 assert.equal(name, "test");
                 assert.deepEqual(data, {
-                    [0]: "Hello",
-                    [2]: "What?"
+                    "0": { "value": "Hello" },
+                    "2": { "value": "What?" },
                 });
             },
             async loadCollection(name: string): Promise<null | Data> { 
                 if (name === "test") {
                     return {
-                        [0]: "Hello",
-                        [1]: "World",
-                        [2]: "What?"
+                        "0": { "value": "Hello" },
+                        "1": { "value": "World" },
+                        "2": { "value": "What?" },
                     };
                 } else {
                     return null; 
@@ -149,16 +150,18 @@ describe('Easy DB Core', () => {
     });
 
     it('keep types of rows', async () => {
+        const row = {
+            string: "String",
+            number: 21,
+            array: [1,2,3],
+            object: { a: "a" },
+        };
+
         const easyDB = easyDBCore({
             async saveCollection(name: string, data: Data) {},
             async loadCollection(name: string): Promise<null | Data> {
                 return {
-                    "1": {
-                        string: "String",
-                        number: 21,
-                        array: [1,2,3],
-                        object: { a: "a" },
-                    }
+                    "1": row
                 };
             },
             async saveFile(base64: string) {
@@ -168,7 +171,7 @@ describe('Easy DB Core', () => {
                 return;
             },
         });
-        const data = await easyDB.select("test", "1");
+        const data = await easyDB.select<typeof row>("test", "1");
         
         assert.isString(data.string);
         assert.isNumber(data.number);

@@ -3,8 +3,8 @@ import { addToQueue } from "./queue";
 import { getFile, replaceFileData, removeUpdatedFiles, File } from "./file";
 
 export type Id = string;
-export type Row = any;
-export type Data = { [id: string]: Row };
+export type Row<T = any> = { [key: string]: T };
+export type Data<T extends Row = Row<any>> = { [id: string]: T };
 
 export interface Backend {
     // null is not use cache and number is in [ms]
@@ -37,8 +37,8 @@ export interface Insert {
     (collection: string, row: Row | ((id: Id) => Row)): Promise<string>; 
 };
 export interface Select {
-    (collection: string): Promise<{ [id: string]: Row }>;
-    (collection: string, id: string): Promise<null | Row>;
+    <T extends Row>(collection: string): Promise<Data<T>>;
+    <T extends Row>(collection: string, id: string): Promise<null | T>;
 };
 export interface Update {
     (collection: string, id: Id, row: Row): Promise<void>;

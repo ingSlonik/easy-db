@@ -1,7 +1,7 @@
 // The same API as easy-db-core
 export type Id = string;
-export type Row = any;
-export type Data = { [id: string]: Row };
+export type Row<T = any> = { [key: string]: T };
+export type Data<T extends Row = Row<any>> = { [id: string]: T };
 
 export type File = {
     id?: string,
@@ -9,10 +9,19 @@ export type File = {
     url: string,
 };
 
-export type Insert = (collection: string, row: Row | ((id: Id) => Row)) => Promise<string>;
-export type Select = (collection: string, idOrQuery?: Id | object) => Promise<Row>;
-export type Update = (collection: string, id: Id, row: Row) => Promise<void>;
-export type Remove = (collection: string, id: Id) => Promise<void>;
+export interface Insert {
+    (collection: string, row: Row | ((id: Id) => Row)): Promise<string>; 
+};
+export interface Select {
+    <T extends Row, Q extends { [key: string]: any }>(collection: string, query?: Q): Promise<Data<T>>;
+    <T extends Row>(collection: string, id: string): Promise<null | T>;
+};
+export interface Update {
+    (collection: string, id: Id, row: Row): Promise<void>;
+};
+export interface Remove {
+    (collection: string, id: Id): Promise<void>;
+};
 
 type Configuration = {
     server: string,

@@ -10,6 +10,7 @@ export function useCors(app: Express) {
     app.use(cors({
         methods: [ "GET", "PUT", "POST", "PATCH", "POST", "DELETE", "OPTIONS" ],
         allowedHeaders: [
+            "Content-Type",
             "Authorization",
             "Easy-DB-Token"
         ],

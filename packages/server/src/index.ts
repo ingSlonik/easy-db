@@ -1,13 +1,14 @@
 import express, { Express } from "express";
 import cors from "cors";
 
-import { Query } from 'mingo';
+import { Query } from "mingo";
 import { select, insert, update, remove } from "easy-db-node";
 
 export { default as express } from "express";
 
 export function useCors(app: Express) {
     app.use(cors({
+        methods: [ "GET", "PUT", "POST", "PATCH", "POST", "DELETE", "OPTIONS" ],
         allowedHeaders: [
             "Authorization",
             "Easy-DB-Token"
@@ -19,7 +20,10 @@ export function useToken(app: Express, token: string) {
     app.use((req, res, next) => {
         const tokenFromHeader = req.headers["easy-db-token"];
 
-        if (typeof tokenFromHeader === "string" && tokenFromHeader === token) {
+        if (
+            req.method === "OPTIONS" ||
+            (typeof tokenFromHeader === "string" && tokenFromHeader === token)
+        ) {
             next();
         } else {
             res.status(401);

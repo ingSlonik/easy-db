@@ -152,16 +152,16 @@ describe('Easy DB Core', () => {
     });
 
     it('rewrite file db only one with more changes', async () => {
-        const spy = chai.spy((name: string) => {
-            console.log({ name });
-        });
+        const saveSpy = chai.spy(() => {});
+        const loadSpy = chai.spy(() => {});
+
         const savedFile = { id: "a", type: "EASY_DB_FILE", url: "/url/abc.png" };
         const easyDB = easyDBCore({
             async saveCollection(name: string, data: Data) {
-                spy(name);
+                if (name === "easy-db-files") saveSpy();
             },
             async loadCollection(name: string): Promise<null | Data> {
-                spy(name);
+                if (name === "easy-db-files") loadSpy();
                 return {
                     "1": { file1: savedFile }
                 };
@@ -180,7 +180,8 @@ describe('Easy DB Core', () => {
             file3: easyDB.file(DUMMY_FILE),
         });
         
-        expect(spy).to.have.been.called.once;
+        expect(saveSpy).to.have.been.called.once;
+        expect(loadSpy).to.have.been.called.once;
     });
 
     it('keep types of rows', async () => {

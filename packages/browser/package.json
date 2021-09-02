@@ -1,6 +1,6 @@
 {
     "name": "easy-db-browser",
-    "version": "1.9.2",
+    "version": "1.10.0",
     "description": "Lite&easy database for browsers based on localStorage.",
     "main": "./lib/index.js",
     "types": "./lib/index.d.ts",
@@ -19,7 +19,7 @@
         "typescript": "^4.2.3"
     },
     "dependencies": {
-        "easy-db-core": "^1.9.2"
+        "easy-db-core": "^1.10.0"
     },
     "keywords": [
         "easy&lite",

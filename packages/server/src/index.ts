@@ -6,6 +6,11 @@ import { select, insert, update, remove } from "easy-db-node";
 
 export { default as express } from "express";
 
+export type Options = {
+    /** 0 - no verbose, 1 - one request one line */
+    verbose: number,
+};
+
 export function useCors(app: Express) {
     app.use(cors({
         methods: [ "GET", "PUT", "POST", "PATCH", "POST", "DELETE", "OPTIONS" ],
@@ -33,14 +38,18 @@ export function useToken(app: Express, token: string) {
     });
 }
 
-export function useEasyDB(app: Express) {
+export function useEasyDB(app: Express, options?: Options) {
+    const verbose = options?.verbose === 0 ? 0 : 1;
 
     app.use(express.json());
 
     app.get("/api/:collection", async (req, res) => {
         const { collection } = req.params;
+
+        verbose && console.log(new Date(), "GET", `/api/${collection}`);
+
         const data = await select(collection);
-    
+
         if (typeof req.query["query"] === "string") {
             let query = {};
             try {
@@ -80,32 +89,44 @@ export function useEasyDB(app: Express) {
     
     app.get("/api/:collection/:id", async (req, res) => {
         const { collection, id } = req.params;
+
+        verbose && console.log(new Date(), "GET", `/api/${collection}/${id}`);
+
         const row = await select(collection, id);
-    
+
         res.type("json");
         res.send(row !== null ? row : JSON.stringify(null));
     });
     
     app.post("/api/:collection", async (req, res) => {
         const { collection } = req.params;
+
+        verbose && console.log(new Date(), "POST", `/api/${collection}`);
+
         const id = await insert(collection, req.body);
-    
+
         res.type("json");
         res.send(JSON.stringify(id));
     });
     
     app.put("/api/:collection/:id", async (req, res) => {
         const { collection, id } = req.params;
+
+        verbose && console.log(new Date(), "PUT", `/api/${collection}/${id}`);
+
         await update(collection, id, req.body);
-    
+
         res.type("json");
         res.send(JSON.stringify(null));
     });
     
     app.patch("/api/:collection/:id", async (req, res) => {
         const { collection, id } = req.params;
+        
+        verbose && console.log(new Date(), "PATCH", `/api/${collection}/${id}`);
+
         const row = await select(collection, id);
-    
+
         await update(collection, id, { ...row, ...req.body });
         res.type("json");
         res.send(JSON.stringify(null));
@@ -113,6 +134,9 @@ export function useEasyDB(app: Express) {
     
     app.delete("/api/:collection/:id", async (req, res) => {
         const { collection, id } = req.params;
+
+        verbose && console.log(new Date(), "DELETE", `/api/${collection}/${id}`);
+
         await remove(collection, id);
     
         res.type("json");

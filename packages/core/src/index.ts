@@ -182,6 +182,7 @@ async function queueRemove(backend: BackendInternal, collection: string, id: Id)
 }
 
 // export easyDB core
+export { getRandomId, isBase64 } from "./common";
 export { addToQueue } from "./queue";
 export { getFile as file } from "./file";
 

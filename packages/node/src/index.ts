@@ -2,7 +2,7 @@ import { resolve, basename } from "path";
 import { promises, existsSync } from "fs";
 const { readFile, mkdir, writeFile, rename, unlink } = promises;
 
-import { getExtension } from "mime";
+import mimeDB from "mime-db";
 import easyDB, { getRandomId, Data } from "easy-db-core";
 export * from "easy-db-core";
 
@@ -106,4 +106,12 @@ function getFileExtension(base64: string): string {
 function getClearBase64(base64: string): string {
     const result = base64.split(';base64,');
     return result[1] || base64;
+}
+
+function getExtension(type: string): string {
+    if (mimeDB[type]?.extensions) {
+        return mimeDB[type]?.extensions[0];
+    } else {
+        return "bin";
+    }
 }

@@ -2,7 +2,7 @@ import { basename } from "path";
 
 import { Storage, File, Bucket } from "@google-cloud/storage";
 
-import { getExtension, getType } from "mime";
+import mimeDB from "mime-db";
 import easyDB, { getRandomId, addToQueue, Data } from "easy-db-core";
 // export {} from "easy-db-core";
 
@@ -200,4 +200,23 @@ function distance(writeFile: WriteFile, delay: number): WriteFile {
     };
 
     return distanceWriteFile;
+}
+
+function getExtension(type: string): string {
+    if (mimeDB[type]?.extensions) {
+        return mimeDB[type]?.extensions[0];
+    } else {
+        return "bin";
+    }
+}
+
+// TODO: improve performance
+function getType(extension: string): string {
+    for (const type in mimeDB) {
+        if (mimeDB[type]?.extensions.includes(extension)) {
+            return type;
+        }
+    }
+
+    return "application/binary";
 }

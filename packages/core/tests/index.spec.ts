@@ -1,4 +1,6 @@
-import { assert } from 'chai';
+import chai, { assert, expect } from 'chai';
+import spies from 'chai-spies';
+chai.use(spies);
 
 import easyDBCore, { Data } from "../src/index";
 
@@ -147,6 +149,38 @@ describe('Easy DB Core', () => {
             },
         });
         await easyDB.remove("test", "1");
+    });
+
+    it('rewrite file db only one with more changes', async () => {
+        const spy = chai.spy((name: string) => {
+            console.log({ name });
+        });
+        const savedFile = { id: "a", type: "EASY_DB_FILE", url: "/url/abc.png" };
+        const easyDB = easyDBCore({
+            async saveCollection(name: string, data: Data) {
+                spy(name);
+            },
+            async loadCollection(name: string): Promise<null | Data> {
+                spy(name);
+                return {
+                    "1": { file1: savedFile }
+                };
+            },
+            async saveFile(base64: string) {
+                return "url/abc2.png";
+            },
+            async removeFile(filePath: string) {
+                assert.equal(filePath, "/url/abc.png");
+                return;
+            },
+        });
+        await easyDB.update("test", "1", {
+            file1: savedFile,
+            file2: easyDB.file(DUMMY_FILE),
+            file3: easyDB.file(DUMMY_FILE),
+        });
+        
+        expect(spy).to.have.been.called.once;
     });
 
     it('keep types of rows', async () => {

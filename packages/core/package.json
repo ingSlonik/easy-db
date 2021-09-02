@@ -12,8 +12,10 @@
     "license": "MIT",
     "devDependencies": {
         "@types/chai": "^4.2.15",
+        "@types/chai-spies": "^1.0.3",
         "@types/mocha": "^8.2.1",
         "chai": "^4.3.4",
+        "chai-spies": "^1.0.0",
         "mocha": "^8.3.2",
         "ts-node": "^9.1.1",
         "typescript": "^4.2.3"

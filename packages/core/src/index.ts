@@ -1,6 +1,7 @@
 import Cache from "./cache";
 import { addToQueue } from "./queue";
-import { getFile, replaceFileData, removeUpdatedFiles, File } from "./file";
+import { getRandomId } from "./common";
+import { getFile, replaceFileData, removeUpdatedFiles, File, FileData, FILE_COLLECTION } from "./file";
 
 export type Id = string;
 export type Row<T = any> = { [key: string]: T };
@@ -81,15 +82,17 @@ async function insert(backend: BackendInternal, collection: string, row: Row | (
     row = typeof row === "function" ? row(newId) : row;
 
     if (typeof backend.saveFile === "function") {
-        wholeCollection[newId] = await replaceFileData(
+        const fileData = await getData(backend, FILE_COLLECTION) as FileData;
+
+        const [ rowWithReplacedFileData, newFileData ] = await replaceFileData(
             row,
             collection,
             newId,
+            fileData,
             backend.saveFile,
-            async (collection, row) => await insert(backend, collection, row),
-            async (collection, id) => await select(backend, collection, id),
-            async (collection, id, row) => await update(backend, collection, id, row),
         );
+        await setData(backend, FILE_COLLECTION, newFileData);
+        wholeCollection[newId] = rowWithReplacedFileData;
     } else {
         wholeCollection[newId] = row;
     }
@@ -123,25 +126,24 @@ async function queueSelect(backend: BackendInternal, collection: string, id: nul
 async function update(backend: BackendInternal, collection: string, id: Id, row: Row) {
     const wholeCollection = await getData(backend, collection);
     if (typeof backend.saveFile === "function" && typeof backend.removeFile === "function") {
-        const rowWithReplacedFileData = await replaceFileData(
+        const fileData = await getData(backend, FILE_COLLECTION) as FileData;
+        
+        const [ rowWithReplacedFileData, newFileData ] = await replaceFileData(
             row,
             collection,
             id,
+            fileData,
             backend.saveFile,
-            async (collection, row) => await insert(backend, collection, row),
-            async (collection, id) => await select(backend, collection, id),
-            async (collection, id, row) => await update(backend, collection, id, row),
         );
-        await removeUpdatedFiles(
-            rowWithReplacedFileData, 
-            wholeCollection[id], 
-            collection,
+        const newFileDataWithRemovedRows = await removeUpdatedFiles(
+            wholeCollection[id],
+            rowWithReplacedFileData,
             id,
+            collection,
+            newFileData,
             backend.removeFile,
-            async (collection, id) => await select(backend, collection, id),
-            async (collection, id, row) => await update(backend, collection, id, row),
-            async (collection, id) => await remove(backend, collection, id),
         );
+        await setData(backend, FILE_COLLECTION, newFileDataWithRemovedRows);
         wholeCollection[id] = rowWithReplacedFileData;
     } else {
         wholeCollection[id] = row;
@@ -157,16 +159,17 @@ async function remove(backend: BackendInternal, collection: string, id: Id) {
     const wholeCollection = await getData(backend, collection);
 
     if (typeof backend.removeFile === "function") {
-        await removeUpdatedFiles(
-            null, 
-            wholeCollection[id], 
-            collection,
+        const fileData = await getData(backend, FILE_COLLECTION) as FileData;
+
+        const newFileDataWithRemovedRows = await removeUpdatedFiles(
+            wholeCollection[id],
+            null,
             id,
+            collection,
+            fileData,
             backend.removeFile,
-            async (collection, id) => await select(backend, collection, id),
-            async (collection, id, row) => await update(backend, collection, id, row),
-            async (collection, id) => await remove(backend, collection, id),
         );
+        await setData(backend, FILE_COLLECTION, newFileDataWithRemovedRows);
     }
 
     delete wholeCollection[id];
@@ -209,14 +212,3 @@ export default (backend: Backend): API => {
         }, 
     };
 };
-
-// this package check used ids, strong random is not necessary
-const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-const charactersLength = characters.length;
-export function getRandomId(length: number = 12) {
-    let result = '';
-    for (let i = 0; i < length; i++) {
-       result += characters.charAt(Math.floor(Math.random() * charactersLength));
-    }
-    return result;
-}

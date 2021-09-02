@@ -7,13 +7,14 @@
  * With updating or removing will take care to replacing this tag.
  */
 
-import { Insert, Update, Remove, Row } from "./";
+import { isBase64, getFreeId } from "./common";
 
 export type File = {
     id?: string,
     type: "EASY_DB_FILE",
     url: string,
 };
+
 
 type Data = any;
 type FileRow = {
@@ -25,10 +26,11 @@ type FileRow = {
     }>,
 };
 
-const FILE_COLLECTION = "easy-db-files";
+export type FileData = Record<string, FileRow>;
 
+export const FILE_COLLECTION = "easy-db-files";
 
-function isFile(data: Data): boolean {
+export function isFile(data: Data): data is File {
     if (
         typeof data === "object"
         && data !== null
@@ -68,77 +70,88 @@ export async function replaceFileData(
     data: Data, 
     collection: string,
     rowId: string,
-    replaceFile: (base64: string) => Promise<string>, 
-    insert: Insert,
-    select: (collection: string, id: string) => Promise<null | Row>,
-    update: Update,
-): Promise<Data> {
+    fileData: FileData,
+    saveFile: (bace64: string) => Promise<string>,
+): Promise<[ Data, FileData ]> {
+    let newFileData = { ...fileData };
+
     if (isFile(data)) {
         if (typeof data.id === "string") {
             // file is parsed
-            const fileRow = await select(FILE_COLLECTION, data.id);
+            const fileRow = newFileData[data.id];
             if (isFileRow(fileRow)) {
                 // update FileRow for situation when is one file in more collections/rows
-                await update(FILE_COLLECTION, data.id, {
+                newFileData[data.id] = {
                     ...fileRow,
                     use: [
-                        fileRow.use.filter(use => use.collection !== collection && use.rowId !== rowId),
+                        ...fileRow.use.filter(use => use.collection !== collection && use.rowId !== rowId),
                         { collection, rowId }
                     ],
-                });
+                };
             } else {
                 // for situation that FileRow was lost
-                await update(FILE_COLLECTION, data.id, {
+                newFileData[data.id] = {
                     id: data.id,
                     url: data.url,
                     use: [ { collection, rowId } ],
-                });
+                };
             }
 
-            return data;
+            return [ data, newFileData ];
         } else {
             // file is not parsed
             if (isBase64(data.url)) {
                 // new file to save to server
-                const url = await replaceFile(data.url);
+                const url = await saveFile(data.url);
                 const use = [ { collection, rowId } ];
-                const id = await insert(FILE_COLLECTION, (id: string): FileRow => ({ id, url, use }));
+                const id = getFreeId(fileData);
                 const file: File = { id, type: "EASY_DB_FILE", url };
-                return file;
+
+                newFileData[id] = { id, url, use };
+                return [ file, newFileData ];
             } else {
                 // the url is defined by user
-                return data;
+                return [ data, newFileData ];
             }
         }
     } else if (Array.isArray(data)) {
         const newData = [];
         for (const value of data) {
-            newData.push(await replaceFileData(value, collection, rowId, replaceFile, insert, select, update));
+            const [ newValueData, newValueFileData ] = await replaceFileData(
+                value, collection, rowId, newFileData, saveFile
+            );
+            newData.push(newValueData);
+            newFileData = newValueFileData;
         }
-        return newData;
+        return [ newData, newFileData ];
     } else if (typeof data === "object" && data !== null) {
         const newRow = {};
         for (const key in data) {
-            newRow[key] = await replaceFileData(data[key], collection, rowId, replaceFile, insert, select, update);
+            newRow[key] = await replaceFileData(data[key], collection, rowId, fileData, saveFile);
+            const [ newValueData, newValueFileData ] = await replaceFileData(
+                data[key], collection, rowId, newFileData, saveFile
+            );
+            newRow[key] = newValueData;
+            newFileData = newValueFileData;
         }
-        return newRow;
+        return [ newRow, newFileData ];
     } else {
-        return data;
+        return [ data, fileData ];
     }
 }
 
 // this function has to be called after replaceFileData
 // that means that here is not new file to save
 export async function removeUpdatedFiles(
-    newData: Data,
     oldData: Data,
-    collection: string,
+    newData: Data,
     rowId: string,
+    collection: string,
+    fileData: FileData,
     removeFile: (filePath: string) => Promise<void>,
-    select: (collection: string, id: string) => Promise<null | Row>,
-    update: Update,
-    remove: Remove,
-) {
+): Promise<FileData> {
+    const newFileData = { ...fileData };
+
     const newFiles = getFilesFromData(newData);
     const oldFiles = getFilesFromData(oldData);
     
@@ -151,18 +164,18 @@ export async function removeUpdatedFiles(
             // these files was in ond row and is not in new row
             if (typeof id === "string" && !isBase64(url)) {
                 // when was saved on this server
-                const fileRow = await select(FILE_COLLECTION, id);
+                const fileRow = newFileData[id];
                 if (isFileRow(fileRow)) {
                     // remove this collection/worId from FileRow
                     const use = fileRow.use.filter(use => use.collection !== collection && use.rowId !== rowId);
 
                     if (use.length === 0) {
                         // remove file only when is not used
-                        await remove(FILE_COLLECTION, id);
+                        delete newFileData[id];
                         removeFile(url);
                     } else {
                         // if file is used in other collection/worId keep file
-                        await update(FILE_COLLECTION, id, { ...fileRow, use });
+                        newFileData[id] = { ...fileRow, use };
                     }
                 } else {
                     // remove file without FileRow
@@ -171,6 +184,8 @@ export async function removeUpdatedFiles(
             }
         }
     }
+
+    return newFileData;
 }
 
 function getFilesFromData(data: Data, files: File[] = []): File[] {
@@ -187,19 +202,4 @@ function getFilesFromData(data: Data, files: File[] = []): File[] {
     }
 
     return files;
-}
-
-// Source: https://github.com/miguelmota/is-base64/blob/master/is-base64.js
-const regexFullIsBase64 = new RegExp("^(data:\\w+\\/[a-zA-Z\\+\\-\\.]+;base64,)(?:[A-Za-z0-9+\\/]{4})*(?:[A-Za-z0-9+\\/]{2}==|[A-Za-z0-9+\/]{3}=)?$", "gi");
-// Source: https://github.com/MrRio/jsPDF/issues/1795
-const regexLightIsBase64 = new RegExp("data:([\\w]+?\/([\\w]+?));base64,(.+)$", "gi");
-function isBase64(base64: string): boolean {
-    if (base64.length < 10e5) {
-        regexFullIsBase64.lastIndex = 0;
-        return regexFullIsBase64.test(base64);
-    } else {
-        // The regexFullIsBase64 has O(n) = n², that cause `RangeError: Maximum call stack size exceeded` for big base64
-        regexLightIsBase64.lastIndex = 0;
-        return regexLightIsBase64.test(base64);
-    }
 }

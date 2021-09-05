@@ -2,46 +2,66 @@ import express, { Express } from "express";
 import cors from "cors";
 
 import { Query } from "mingo";
-import { select, insert, update, remove } from "easy-db-node";
+import easyDB, { Configuration as ConfigurationNode } from "easy-db-node";
 
 export { default as express } from "express";
 
-export type Options = {
+export type Configuration = {
     /** 0 - no verbose, 1 - one request one line */
     verbose: number,
-};
+    /**
+     * Controls the maximum request body size. If this is a number, then the value specifies the number of bytes;
+     * if it is a string, the value is passed to the bytes library for parsing. Defaults to '15Mb'.
+     */
+    requestSizeLimit: number | string,
+    /** Allow requests form other domains. Default is true! */
+    cors: boolean,
+    /** Security token for client-server connection */
+    token: null | string,
+} & Partial<ConfigurationNode>;
 
-export function useCors(app: Express) {
-    app.use(cors({
-        methods: [ "GET", "PUT", "POST", "PATCH", "POST", "DELETE", "OPTIONS" ],
-        allowedHeaders: [
-            "Content-Type",
-            "Authorization",
-            "Easy-DB-Token"
-        ],
-    }));
-}
+export function useEasyDB(app: Express, configuration: Partial<Configuration>) {
+    const conf: Configuration = {
+        verbose: 1,
+        cacheExpirationTime: 15000,
+        requestSizeLimit: "15Mb",
+        cors: true,
+        token: null,
+        ...configuration,
+    };
 
-export function useToken(app: Express, token: string) {
-    app.use((req, res, next) => {
-        const tokenFromHeader = req.headers["easy-db-token"];
+    const { select, insert, update, remove } = easyDB(conf);
 
-        if (
-            req.method === "OPTIONS" ||
-            (typeof tokenFromHeader === "string" && tokenFromHeader === token)
-        ) {
-            next();
-        } else {
-            res.status(401);
-            res.send("Not authorized request.");
-        }
-    });
-}
+    const verbose = conf.verbose;
 
-export function useEasyDB(app: Express, options?: Options) {
-    const verbose = options?.verbose === 0 ? 0 : 1;
+    app.use(express.json({ limit: conf.requestSizeLimit }));
 
-    app.use(express.json());
+    if (conf.cors) {
+        app.use(cors({
+            methods: [ "GET", "PUT", "POST", "PATCH", "POST", "DELETE", "OPTIONS" ],
+            allowedHeaders: [
+                "Content-Type",
+                "Authorization",
+                "Easy-DB-Token"
+            ],
+        }));
+    }
+
+    if (conf.token !== null) {
+        app.use((req, res, next) => {
+            const tokenFromHeader = req.headers["easy-db-token"];
+    
+            if (
+                req.method === "OPTIONS" ||
+                (typeof tokenFromHeader === "string" && tokenFromHeader === conf.token)
+            ) {
+                next();
+            } else {
+                res.status(401);
+                res.send("Not authorized request.");
+            }
+        });
+    }
 
     app.get("/api/:collection", async (req, res) => {
         const { collection } = req.params;

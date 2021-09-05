@@ -2,7 +2,7 @@
 import { resolve } from "path";
 import yargs from "yargs";
 
-import { express, useCors, useToken, useEasyDB } from "./";
+import { express, useEasyDB } from "./";
 
 const options = yargs
     .usage("Usage: easy-db-server --port <port> -html ./index.html")
@@ -23,13 +23,10 @@ if (typeof INDEX === "string") {
     });
 }
 
-useCors(app);
-
-if (typeof TOKEN === "string") {
-    useToken(app, TOKEN);
-}
-
-useEasyDB(app);
+useEasyDB(app, {
+    cors: true,
+    token: typeof TOKEN === "string" ? TOKEN : null,
+});
 
 const server = app.listen(PORT, () => console.log(`Easy DB server is running at http://localhost:${PORT}.`));
 

@@ -24,7 +24,8 @@ Include types for TypeScript.
 ## API interface
 
 ```js
-import { insert, select, update, remove, file } from "easy-db-*";
+import easyDB from "easy-db-*";
+const { insert, select, update, remove, file } = easyDB(conf);
 
 // INSERT
 const idOfRow = await insert("collection1", { myRow: 1 });

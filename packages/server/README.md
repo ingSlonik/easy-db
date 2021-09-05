@@ -41,15 +41,13 @@ Options:
 ```js
 import { express, useCors, useToken, useEasyDB } from "easy-db-server";
 // or
-const { express, useCors, useToken, useEasyDB } = require("easy-db-server");
+const { express, useEasyDB } = require("easy-db-server");
 
 const PORT = 80;
 
 const app = express();
 
-useCors(app);
-useToken(app, "takenHash");
-useEasyDB(app);
+useEasyDB(app, { token: "takenHash" });
 
 app.listen(PORT, () =>
   console.log(`Easy DB server is running at http://localhost:${PORT}.`)

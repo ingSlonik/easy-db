@@ -11,9 +11,11 @@ Include types for TypeScript.
 ## API
 
 ```js
-import { insert, select, update, remove, file, configure } from "easy-db-client";
-
-configure({ server: "https://example.com/api/", token: "secretToken" });
+import easyDB from "easy-db-client";
+const { insert, select, update, remove, file } = easyDB({
+    server: "https://example.com/",
+    token: "secretToken",
+});
 
 // INSERT
 const idOfRow = await insert("collection1", { myRow: 1 });
@@ -38,7 +40,8 @@ const idOfRow = await insert("collection1", { photo: file("data:base64...") });
 ## Example of use
 
 ```js
-import { select, update } from "easy-db-browser";
+import easyDB from "easy-db-client";
+const { select, update } = easyDB({});
 
 // Save nickname 
 await update("myAppName", "nickname", nickname);

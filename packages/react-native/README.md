@@ -8,7 +8,8 @@ Include types for TypeScript.
 ## API
 
 ```js
-import { insert, select, update, remove } from "easy-db-react-native";
+import easyDB from "easy-db-react-native";
+const { insert, select, update, remove } = easyDB();
 
 // INSERT
 const idOfRow = await insert("collection1", { myRow: 1 });
@@ -27,7 +28,9 @@ await remove("collection1", idOfRow); // only one row
 ## Example of use
 
 ```js
-import { select, update } from "easy-db-react-native";
+
+import easyDB from "easy-db-react-native";
+const { select, update } = easyDB();
 
 // Save nickname 
 await update("myAppName", "nickname", nickname);

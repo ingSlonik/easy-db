@@ -8,7 +8,8 @@ Include types for TypeScript.
 ## API
 
 ```js
-import { insert, select, update, remove } from "easy-db-browser";
+import easyDB from "easy-db-browser";
+const { insert, select, update, remove } = easyDB();
 
 // INSERT
 const idOfRow = await insert("collection1", { myRow: 1 });
@@ -27,7 +28,8 @@ await remove("collection1", idOfRow); // only one row
 ## Example of use
 
 ```js
-import { select, update } from "easy-db-browser";
+import easyDB from "easy-db-browser";
+const { select, update } = easyDB();
 
 // Save nickname 
 await update("myAppName", "nickname", nickname);

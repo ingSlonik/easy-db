@@ -3,8 +3,6 @@
 Core of Lite&easy database for the same interface of any implementation.
 The same interface can be used in Node, Web, Mobile, Server and Develop applications.
 
-> I recommend use this tool exclusively for developing or small projects.
-
 Include types for TypeScript.
 
 ## Features
@@ -16,7 +14,8 @@ Include types for TypeScript.
 ## API interface
 
 ```js
-import { insert, select, update, remove } from "easy-db-*";
+import easyDB from "easy-db-*";
+const { insert, select, update, remove } = easyDB(configuration);
 
 // INSERT
 const idOfRow = await insert("collection1", { myRow: 1 });
@@ -37,7 +36,8 @@ await remove("collection1", idOfRow); // only one row
 
 ### Save user information in browser
 ```js
-import { select, update } from "easy-db-browser";
+import easyDB from "easy-db-browser";
+const { select, update } = easyDB();
 
 // Save nickname 
 await update("myAppName", "nickname", nickname);
@@ -48,9 +48,8 @@ const nickname = await select("myAppName", "nickname");
 
 ### File saving as url
 ```js
-import { select, update, file, configure } from "easy-db-node";
-
-configure({ fileFolder: "./files", fileUrl: "/files" });
+import easyDB from "easy-db-node";
+const { select, update, file, configure } = easyDB({ fileFolder: "./files", fileUrl: "/files" });
 
 // Save user with picture 
 await update("myAppName", "user", {
@@ -77,21 +76,24 @@ import easyDB from "easy-db-core";
 
 type Data = { [id: string]: any };
 
-export const { insert, select, update, remove } = easyDB({
-    async saveCollection(name: string, data: Data) {
-        // code for save collection
-    },
-    async loadCollection(name: string): Promise<null | Data> {
-        // code for load collection
-    },
-});
+export default function easyDBMy(configuration: {}) {
+    return easyDB({
+        async saveCollection(name: string, data: Data) {
+            // code for save collection
+        },
+        async loadCollection(name: string): Promise<null | Data> {
+            // code for load collection
+        },
+    };
+};
+
 ```
 
 ### Add your file handling 
 
 ```js
 
-export const { insert, select, update, remove } = easyDB({
+return easyDB({
     ...
     async saveFile(base64: string): string {
         // code replace file

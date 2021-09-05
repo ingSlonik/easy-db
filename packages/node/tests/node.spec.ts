@@ -1,13 +1,15 @@
-import { readFileSync, existsSync } from "fs";
+import { readFileSync, existsSync, promises } from "fs";
 import { resolve } from "path";
 
 import { assert } from "chai";
 
-import { insert, select, update, remove, configure, file } from "../src/index";
+import easyDB from "../src/index";
+
+const { writeFile, readdir, unlink } = promises;
 
 const DUMMY_FILE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
 
-configure({ fileFolder: "./files", fileUrl: "./files" });
+const { insert, select, update, remove, file } = easyDB({ fileFolder: "./files", fileUrl: "./files" });
 
 describe('Easy DB', () => {
     it('db API', () => {
@@ -119,5 +121,22 @@ describe('Easy DB', () => {
         await remove("test", id);
         const data = await select("test", id);
         assert.deepEqual(data, null);
+    });
+
+    it('keep damaged db files', async () => {
+        const dbFolder = resolve(__dirname, "..", "easy-db");
+        // remove all test-damaged files
+        for (const file of await readdir(dbFolder)) {
+            if (file.includes("test-damaged"))
+                await unlink(resolve(dbFolder, file));
+        }
+        
+        // create damaged json file
+        await writeFile(resolve(__dirname, "..", "easy-db", "test-damaged.json"), "{ Damaged JSON }", "utf8");
+        await insert("test-damaged", { fixed: "collection" });
+        
+        // check files with test-damaged
+        const files = await readdir(dbFolder);
+        assert.lengthOf(files.filter(file => file.includes("test-damaged")), 2);
     });
 });

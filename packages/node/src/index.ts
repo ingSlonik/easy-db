@@ -1,93 +1,135 @@
 import { resolve, basename } from "path";
-import { promises, existsSync } from "fs";
-const { readFile, mkdir, writeFile, rename, unlink } = promises;
+import { promises, existsSync, createReadStream, createWriteStream } from "fs";
+const { mkdir, unlink } = promises;
 
 import mimeDB from "mime-db";
 import easyDB, { getRandomId, Data } from "easy-db-core";
 export * from "easy-db-core";
 
-type Partial<T> = {
-    [P in keyof T]?: T[P];
-};
-
-type Configuration = {
+export type Configuration = {
+    /** easyDB can remember loaded data and not waste time to read files every select [ms] */
+    cacheExpirationTime: null | number;
     fileFolder: string,
     fileUrl: string,
     folderDB: string,
 };
 
-// One configuration for whole runtime
-const configuration: Configuration = {
-    fileFolder: "easy-db-files",
-    fileUrl: "/easy-db-files",
-    folderDB: "easy-db",
-}
+export default function easyDBNode(conf: Partial<Configuration>) {
+    const configuration: Configuration = {
+        cacheExpirationTime: null,
+        fileFolder: "easy-db-files",
+        fileUrl: "/easy-db-files",
+        folderDB: "easy-db",
+        ...conf,
+    };
 
-export function configure(config: Partial<Configuration>) {
-    for (const key in config) {
-        configuration[key] = config[key];
-    }
-}
-
-export const { insert, select, update, remove, file } = easyDB({
-    async saveCollection(name: string, data: Data) {
-        if (!existsSync(configuration.folderDB)) {
-            await mkdir(configuration.folderDB);
-        }
-        await writeFile(
-            resolve(configuration.folderDB, `${name}.json`),
-            JSON.stringify(data, null, "    "), "utf8"
-        );
-        return;
-    },
-    async loadCollection(name: string): Promise<null | Data> {
-        const file = resolve(configuration.folderDB, `${name}.json`);
-        if (existsSync(file)) {
-            const content = await readFile(file, "utf8");
-            try {
-                const data = JSON.parse(content);
-                if (data !== null && typeof data === "object") {
-                    return data;
-                } else {
+    return easyDB({
+        cacheExpirationTime: configuration.cacheExpirationTime,
+        async saveCollection(name: string, data: Data) {
+            if (!(await isDirectory(configuration.folderDB))) {
+                await mkdir(configuration.folderDB);
+            }
+            await writeFile(
+                resolve(configuration.folderDB, `${name}.json`),
+                Buffer.from(JSON.stringify(data, null, "    "), "utf8")
+            );
+            return;
+        },
+        async loadCollection(name: string): Promise<null | Data> {
+            const file = resolve(configuration.folderDB, `${name}.json`);
+            if (await isFile(file)) {
+                const content = await readFile(file);
+                try {
+                    const data = JSON.parse(content.toString());
+                    if (data !== null && typeof data === "object") {
+                        return data;
+                    } else {
+                        return null;
+                    }
+                } catch (e) {
+                    // save inconsistent data
+                    const wrongFileName = `${name}-wrong-${getDateFileName()}.json`;
+                    // rename doesn't work when is problem
+                    await writeFile(resolve(configuration.folderDB, wrongFileName), content);
+                    // await copyFile(file, resolve(configuration.folderDB, wrongFileName));
+                    console.error(`Collection "${name}" is not parsable. It is save to "${wrongFileName}".`);
                     return null;
                 }
-            } catch (e) {
-                // save inconsistent data
-                const wrongFileName = `${name}-wrong-${new Date().toISOString()}.json`;
-                await rename(file, resolve(configuration.folderDB, wrongFileName));
-                console.error(`Collection "${name}" is not parsable. It is save to "${wrongFileName}".`);
+            } else {
                 return null;
             }
-        } else {
-            return null;
+        },
+        async saveFile(base64: string) {
+            if (!(await isDirectory(configuration.fileFolder))) {
+                await mkdir(configuration.fileFolder);
+            }
+    
+            const extension = getFileExtension(base64);
+            const fileName = await getFreeFileName(configuration.fileFolder, extension);
+            
+            // not wait for it, it can take a log of time
+            writeFile(
+                resolve(configuration.fileFolder, fileName),
+                Buffer.from(getClearBase64(base64), "base64"),
+            );
+    
+            return `${configuration.fileUrl}/${fileName}`;
+        },
+        async removeFile(path: string) {
+            await unlink(resolve(configuration.fileFolder, basename(path)));
         }
-    },
-    async saveFile(base64: string) {
-        if (!existsSync(configuration.fileFolder)) {
-            await mkdir(configuration.fileFolder);
-        }
+    });
+}
 
-        const extension = getFileExtension(base64);
-        const fileName = getFreeFileName(configuration.fileFolder, extension);
-        
-        await writeFile(
-            resolve(configuration.fileFolder, fileName),
-            Buffer.from(getClearBase64(base64), "base64"),
-        );
-
-        return `${configuration.fileUrl}/${fileName}`;
-    },
-    async removeFile(path: string) {
-        await unlink(resolve(configuration.fileFolder, basename(path)));
-    }
-});
-
-function getFreeFileName(path: string, extension: string): string {
+async function getFreeFileName(path: string, extension: string): Promise<string> {
     const fileName = `${getRandomId()}.${extension}`;
-    if (existsSync(resolve(path, fileName))) {
-        return getFreeFileName(path, extension);
+    if (await isFile(resolve(path, fileName))) {
+        return await getFreeFileName(path, extension);
     } else {
         return fileName;
+    }
+}
+
+async function isFile(path: string): Promise<boolean> {
+    return existsSync(path);
+    // const stats = await stat(path);
+    // return stats.isFile();
+}
+async function isDirectory(path: string): Promise<boolean> {
+    return existsSync(path);
+    // const stats = await stat(path);
+    // return stats.isDirectory();  
+}
+
+// better performance
+async function readFile(path: string): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+        const buffers = [];
+        const stream = createReadStream(path, { flags: "r" });
+        stream.on("error", err => reject(err));
+        stream.on("data", chunk => buffers.push(chunk));
+        stream.on("end", () => resolve(Buffer.concat(buffers)));
+    });
+}
+async function writeFile(path: string, buffer: Buffer): Promise<void> {
+    return new Promise((resolve, reject) => {
+        const stream = createWriteStream(path, { flags: "w" });
+        stream.on("error", err => reject(err));
+        stream.write(buffer);
+        stream.end(resolve);
+    });
+}
+
+function getDateFileName(): string {
+    // YYYY-MM-DDTTime
+    const date = new Date();
+    return `${date.getFullYear()}-${getTwoDigits(date.getMonth() + 1)}-${getTwoDigits(date.getDate())}T${date.getTime()}`;
+}
+function getTwoDigits(number: number): string {
+    if (number < 10) {
+        return `0${number}`;
+    } else {
+        return `${number}`;
     }
 }
 

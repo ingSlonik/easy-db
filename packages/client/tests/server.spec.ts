@@ -1,28 +1,29 @@
 process.env.NODE_ENV = "test";
 
 import { assert } from "chai";
-import { express, useCors, useToken, useEasyDB } from "easy-db-server";
+import { express, useEasyDB } from "easy-db-server";
 
 import fetch from "node-fetch";
 global.fetch = (fetch as any);
 
-import { insert, select, update, remove, configure } from "../src";
+import easyDB from "../src";
 
 const TOKEN = "secretToken";
 
 const app = express();
-useCors(app);
-useToken(app, TOKEN);
-useEasyDB(app);
+
+useEasyDB(app, {
+    token: TOKEN,
+});
 
 const server = app.listen(1234, () => console.log(`Easy DB server is running at http://localhost:1234.`));
 
-configure({ server: "http://localhost:1234/api/", token: TOKEN });
+const { insert, select, update, remove } = easyDB({ server: "http://localhost:1234/", token: TOKEN });
 
 describe('Easy DB client', () => {
 
     it('wrong token', async () => {
-        configure({ server: "http://localhost:1234/api/", token: "wrongToken" });
+        const { select } = easyDB({ server: "http://localhost:1234/api/", token: "wrongToken" });
         try {
             const data = await select("test");
             assert.fail("Token should be wrong.");
@@ -32,7 +33,7 @@ describe('Easy DB client', () => {
     });
 
     it('right token', async () => {
-        configure({ server: "http://localhost:1234/api/", token: TOKEN });
+        const { insert, select } = easyDB({ server: "http://localhost:1234/", token: TOKEN });
         const id = await insert("test", { myFirst: "token" });
         const data = await select("test", id);
         assert.notEqual(data, null);

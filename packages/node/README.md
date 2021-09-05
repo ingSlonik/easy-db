@@ -13,7 +13,8 @@ Include types for TypeScript.
 ## API
 
 ```js
-import { insert, select, update, remove, file } from "easy-db-node";
+import easyDB from "easy-db-node";
+const { insert, select, update, remove, file } = easyDB({});
 
 // INSERT
 const idOfRow = await insert("collection1", { myRow: 1 });
@@ -33,7 +34,8 @@ await remove("collection1", idOfRow); // only one row
 ## Example of use
 
 ```js
-import { select, update } from "easy-db-node";
+import easyDB from "easy-db-node";
+const { select, update } = easyDB({});
 
 // Save nickname
 await update("myAppName", "nickname", nickname);
@@ -45,9 +47,8 @@ const nickname = await select("myAppName", "nickname");
 ### File saving as url
 
 ```js
-import { select, update, file, configure } from "easy-db-node";
-
-configure({ fileFolder: "files", fileUrl: "/files" });
+import easyDB from "easy-db-node";
+const { select, update, file } = easyDB({ fileFolder: "files", fileUrl: "/files" });
 
 // Save user with picture
 await update("myAppName", "user", {

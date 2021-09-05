@@ -3,7 +3,9 @@ import "./localStore";
 
 import { assert } from "chai";
 
-import { insert, select, update, remove } from "../src/index";
+import easyDB from "../src/index";
+
+const { insert, select, update, remove } = easyDB();
 
 describe('Easy DB', () => {
     it('db API', () => {

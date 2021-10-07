@@ -2,5 +2,6 @@ lib/
 files/
 easy-db/
 easy-db-files/
+easy-db-backup/
 node_modules/
 .npmrc

@@ -47,7 +47,12 @@ const PORT = 80;
 
 const app = express();
 
-useEasyDB(app, { token: "takenHash" });
+useEasyDB(app, {
+  verbose: 1,
+  requestSizeLimit: "15MB",
+  cors: true,
+  token: "takenHash",
+});
 
 app.listen(PORT, () =>
   console.log(`Easy DB server is running at http://localhost:${PORT}.`)

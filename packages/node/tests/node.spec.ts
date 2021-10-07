@@ -3,13 +3,21 @@ import { resolve } from "path";
 
 import { assert } from "chai";
 
-import easyDB from "../src/index";
+import easyDB, { defaultBackupConfiguration, getDayDate } from "../src/index";
 
 const { writeFile, readdir, unlink } = promises;
 
 const DUMMY_FILE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
 
-const { insert, select, update, remove, file } = easyDB({ fileFolder: "./files", fileUrl: "./files" });
+const { insert, select, update, remove, file } = easyDB({
+    fileFolder: "./files",
+    fileUrl: "./files",
+    backup: {
+        folder: "backup",
+        getActualName: () => "keep",
+        keepName: name => name === "keep",
+    },
+});
 
 describe('Easy DB', () => {
     it('db API', () => {
@@ -138,5 +146,48 @@ describe('Easy DB', () => {
         // check files with test-damaged
         const files = await readdir(dbFolder);
         assert.lengthOf(files.filter(file => file.includes("test-damaged")), 2);
+    });
+
+    it('create backup', async () => {
+        const backupPath = resolve(__dirname, "..", "backup");
+        const backupFile = resolve(backupPath, "keep.zip");
+        
+        if (existsSync(backupFile))
+            await unlink(backupFile);
+
+        await insert("test", { backupTest: 1 });
+
+        assert.isTrue(existsSync(backupFile), "Backup is not created.");
+    });
+
+    it('remove old backup', async () => {
+        const backupPath = resolve(__dirname, "..", "backup");
+        const backupFile = resolve(backupPath, "keep.zip");
+        const backupOldFile = resolve(backupPath, "old.zip");
+        
+        if (!existsSync(backupOldFile))
+            await writeFile(backupOldFile, "Fake old backup file", "utf8");
+        if (existsSync(backupFile))
+            await unlink(backupFile);
+
+        await insert("test", { backupTest: 2 });
+
+        assert.isFalse(existsSync(backupOldFile), "Old backup is not removed.");
+    });
+
+    it('check default keep function', () => {
+        const { keepName } = defaultBackupConfiguration;
+
+        assert.isTrue(keepName("notDate"), "Keep users not date files");
+
+        const date = new Date();
+        assert.isTrue(keepName(getDayDate(date)), "Keep todays backup");
+
+        date.setDate(date.getDate() - 1);
+        assert.isTrue(keepName(getDayDate(date)), "Keep yesterdays backup");
+    
+        date.setDate(date.getDate() - 59);
+        date.setDate(2);
+        assert.isFalse(keepName(getDayDate(date)), "Not keep backup before 2 months 2th day");
     });
 });

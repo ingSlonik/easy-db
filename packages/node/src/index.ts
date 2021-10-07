@@ -1,10 +1,17 @@
-import { resolve, basename } from "path";
+import { resolve, basename, parse } from "path";
 import { promises, existsSync, createReadStream, createWriteStream } from "fs";
-const { mkdir, unlink } = promises;
+const { mkdir, unlink, readdir } = promises;
 
+import JSZip from "jszip";
 import mimeDB from "mime-db";
 import easyDB, { getRandomId, Data } from "easy-db-core";
 export * from "easy-db-core";
+
+type Backup = {
+    folder: string,
+    getActualName: () => string,
+    keepName: (name: string) => boolean,
+};
 
 export type Configuration = {
     /** easyDB can remember loaded data and not waste time to read files every select [ms] */
@@ -12,7 +19,27 @@ export type Configuration = {
     fileFolder: string,
     fileUrl: string,
     folderDB: string,
+    // backup data. True is default settings.
+    backup: boolean | Partial<Backup>,
 };
+
+export const defaultBackupConfiguration: Backup = {
+    folder: "easy-db-backup",
+    getActualName: () => getDayDate(new Date()),
+    keepName: (name: string) => {
+        const date = new Date(name);
+        const now = new Date();
+        const before30days = new Date();
+        before30days.setDate(now.getDate() - 30);
+        const before12months = new Date();
+        before12months.setMonth(now.getMonth() - 12);
+
+        return isNaN(date.getTime()) // keep not date names
+            || date.getTime() > before30days.getTime() // keep every day for 30 days
+            ||(date.getTime() > before12months.getTime() && date.getDate() === 1) // keep every month for 12 months
+            ||(date.getDate() === 1 && date.getMonth() === 0); // keep every year forever
+    },
+}
 
 export default function easyDBNode(conf: Partial<Configuration>) {
     const configuration: Configuration = {
@@ -20,6 +47,7 @@ export default function easyDBNode(conf: Partial<Configuration>) {
         fileFolder: "easy-db-files",
         fileUrl: "/easy-db-files",
         folderDB: "easy-db",
+        backup: true,
         ...conf,
     };
 
@@ -29,11 +57,43 @@ export default function easyDBNode(conf: Partial<Configuration>) {
             if (!(await isDirectory(configuration.folderDB))) {
                 await mkdir(configuration.folderDB);
             }
+
+            if (configuration.backup !== false) {
+                const backup = configuration.backup === true ? 
+                    defaultBackupConfiguration : 
+                    { ...defaultBackupConfiguration , ...configuration.backup };
+                
+                if (!(await isDirectory(backup.folder))) {
+                    await mkdir(backup.folder);
+                }
+
+                const backupName = `${backup.getActualName()}.zip`;
+                const backupPath = resolve(backup.folder, backupName);
+                if (!(await isFile(backupPath))) {
+                    const files = await readdir(configuration.folderDB, "utf8");
+                    if (files.length > 0) {
+                        const zip = new JSZip();
+                        
+                        files.forEach(file => zip
+                            .file(file, createReadStream(resolve(configuration.folderDB, file), { flags: "r" }))
+                        );
+                        await writeFile(backupPath, await zip.generateAsync({ type: "nodebuffer" }));
+                    }
+
+                    const backupFiles = await readdir(backup.folder, "utf8");
+                    for (const backupFile of backupFiles) {
+                        const { name, ext } = parse(backupFile);
+                        if (ext === ".zip" && !backup.keepName(name)) {
+                            await unlink(resolve(backup.folder, backupFile));
+                        }
+                    }
+                }
+            }
+
             await writeFile(
                 resolve(configuration.folderDB, `${name}.json`),
                 Buffer.from(JSON.stringify(data, null, "    "), "utf8")
             );
-            return;
         },
         async loadCollection(name: string): Promise<null | Data> {
             const file = resolve(configuration.folderDB, `${name}.json`);
@@ -111,11 +171,11 @@ async function readFile(path: string): Promise<Buffer> {
         stream.on("end", () => resolve(Buffer.concat(buffers)));
     });
 }
-async function writeFile(path: string, buffer: Buffer): Promise<void> {
+async function writeFile(path: string, file: Buffer): Promise<void> {
     return new Promise((resolve, reject) => {
         const stream = createWriteStream(path, { flags: "w" });
         stream.on("error", err => reject(err));
-        stream.write(buffer);
+        stream.write(file);
         stream.end(resolve);
     });
 }
@@ -123,8 +183,14 @@ async function writeFile(path: string, buffer: Buffer): Promise<void> {
 function getDateFileName(): string {
     // YYYY-MM-DDTTime
     const date = new Date();
-    return `${date.getFullYear()}-${getTwoDigits(date.getMonth() + 1)}-${getTwoDigits(date.getDate())}T${date.getTime()}`;
+    return `${getDayDate(date)}T${date.getTime()}`;
 }
+
+/** Exported for testing */
+export function getDayDate(date: Date): string {
+    return `${date.getFullYear()}-${getTwoDigits(date.getMonth() + 1)}-${getTwoDigits(date.getDate())}`;
+}
+
 function getTwoDigits(number: number): string {
     if (number < 10) {
         return `0${number}`;
@@ -152,7 +218,7 @@ function getClearBase64(base64: string): string {
 
 function getExtension(type: string): string {
     if (mimeDB[type]?.extensions) {
-        return mimeDB[type]?.extensions[0];
+        return mimeDB[type].extensions[0];
     } else {
         return "bin";
     }

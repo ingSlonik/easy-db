@@ -1,4 +1,5 @@
 files/
+backup/
 easy-db/
 node_modules/
 .npmrc

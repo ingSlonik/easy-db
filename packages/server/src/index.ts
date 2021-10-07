@@ -11,7 +11,7 @@ export type Configuration = {
     verbose: number,
     /**
      * Controls the maximum request body size. If this is a number, then the value specifies the number of bytes;
-     * if it is a string, the value is passed to the bytes library for parsing. Defaults to '15Mb'.
+     * if it is a string, the value is passed to the bytes library for parsing. Defaults to '15MB'.
      */
     requestSizeLimit: number | string,
     /** Allow requests form other domains. Default is true! */
@@ -24,7 +24,7 @@ export function useEasyDB(app: Express, configuration: Partial<Configuration>) {
     const conf: Configuration = {
         verbose: 1,
         cacheExpirationTime: 15000,
-        requestSizeLimit: "15Mb",
+        requestSizeLimit: "15MB",
         cors: true,
         token: null,
         ...configuration,

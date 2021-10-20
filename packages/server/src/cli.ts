@@ -17,7 +17,7 @@ const options = yargs
 
 const PORT = process.env.PORT || options.p || 80;
 const TOKEN = process.env.EASY_DB_TOKEN || options.t || null;
-const HTML = options.h || resolve(__dirname, "..", "index.html");
+const HTML = options.h || resolve(__dirname, "..", "serverIndex.html");
 
 const app = express();
 

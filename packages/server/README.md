@@ -1,5 +1,7 @@
 # REST API server based on Easy DB
 
+![Easy DB logo](../../logo.svg "Easy DB logo")
+
 Lite&easy database REST server based on `easy-db-node` without any necessary configuration.
 
 Include types for TypeScript.

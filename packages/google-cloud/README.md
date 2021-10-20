@@ -1,5 +1,7 @@
 # Easy DB for Google Cloud Storage
 
+![Easy DB logo](../../logo.svg "Easy DB logo")
+
 Lite&easy database for Node.js, based on `easy-db-code`.
 
 Include types for TypeScript.

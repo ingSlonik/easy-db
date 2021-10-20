@@ -1,5 +1,7 @@
 # Easy DB for browser
 
+![Easy DB logo](../../logo.svg "Easy DB logo")
+
 Lite&easy database for browsers based on localStorage, powered by `easy-db-code`.
 Not create any database structure, just use it.
 

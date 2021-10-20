@@ -1,4 +1,5 @@
 easy-db/
+easy-db-backup/
 node_modules/
 .npmrc
 package-lock.json

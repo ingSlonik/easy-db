@@ -1,5 +1,7 @@
 # Easy DB Core
 
+![Easy DB logo](../../logo.svg "Easy DB logo")
+
 Core of Lite&easy database for the same interface of any implementation.
 The same interface can be used in Node, Web, Mobile, Server and Develop applications.
 

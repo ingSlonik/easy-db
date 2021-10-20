@@ -1,5 +1,7 @@
 # Easy DB
 
+![Easy DB logo](logo.svg "Easy DB logo")
+
 Lite&easy database for the same interface all JavaScript environments.
 The same interface can be used in Node, Web, Mobile, Cloud, Server and Develop applications.
 
@@ -11,13 +13,13 @@ This database is NoSQL intended for developing and for less complex structures.
 
 | Name                                                                                   | npm                                                      |
 | -------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| [Core](https://github.com/ingSlonik/easy-db/tree/master/packages/core)                 | `npm install easy-db-core`                               |
-| [Node](https://github.com/ingSlonik/easy-db/tree/master/packages/node)                 | `npm install easy-db-node`                               |
-| [Browser](https://github.com/ingSlonik/easy-db/tree/master/packages/browser)           | `npm install easy-db-browser`                            |
-| [React native](https://github.com/ingSlonik/easy-db/tree/master/packages/react-native) | `npm install easy-db-react-native`                       |
-| [Client](https://github.com/ingSlonik/easy-db/tree/master/packages/client)             | `npm install easy-db-client`                             |
-| [Server](https://github.com/ingSlonik/easy-db/tree/master/packages/server)             | `npm install easy-db-server` or run `npx easy-db-server` |
-| [Google Cloud](https://github.com/ingSlonik/easy-db/tree/master/packages/google-cloud) | `npm install easy-db-google-cloud`                       |
+| [Core](https://ingslonik.github.io/easy-db/packages/core)                 | `npm install easy-db-core`                               |
+| [Node](https://ingslonik.github.io/easy-db/packages/node)                 | `npm install easy-db-node`                               |
+| [Browser](https://ingslonik.github.io/easy-db/packages/browser)           | `npm install easy-db-browser`                            |
+| [React native](https://ingslonik.github.io/easy-db/packages/react-native) | `npm install easy-db-react-native`                       |
+| [Client](https://ingslonik.github.io/easy-db/packages/client)             | `npm install easy-db-client`                             |
+| [Server](https://ingslonik.github.io/easy-db/packages/server)             | `npm install easy-db-server` or run `npx easy-db-server` |
+| [Google Cloud](https://ingslonik.github.io/easy-db/packages/google-cloud) | `npm install easy-db-google-cloud`                       |
 
 Include types for TypeScript.
 

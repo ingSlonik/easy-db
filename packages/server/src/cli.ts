@@ -12,7 +12,7 @@ const options = yargs
     .argv;
 
 const PORT = process.env.PORT || options.port || 80;
-const INDEX = options.index || resolve(__dirname, "..", "index.html");
+const INDEX = options.index || resolve(__dirname, "..", "serverIndex.html");
 const TOKEN = process.env.EASY_DB_TOKEN || options.t || null;
 
 const app = express();

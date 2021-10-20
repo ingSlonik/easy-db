@@ -1,5 +1,7 @@
 # Easy DB client
 
+![Easy DB logo](../../logo.svg "Easy DB logo")
+
 Lite&easy client for `easy-db-server` or other full REST server.
 The same API as using the `easy-db` directly.
 The same package for `browser`, `node` and `react-native`.

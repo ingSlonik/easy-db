@@ -32,7 +32,7 @@ export function useEasyDB(app: Express, configuration: Partial<Configuration>) {
 
     const { select, insert, update, remove } = easyDB(conf);
 
-    const verbose = conf.verbose;
+    const { verbose } = conf;
 
     app.use(express.json({ limit: conf.requestSizeLimit }));
 
@@ -70,20 +70,59 @@ export function useEasyDB(app: Express, configuration: Partial<Configuration>) {
 
         const data = await select(collection);
 
-        if (typeof req.query["query"] === "string") {
-            let query = {};
-            try {
-                query = JSON.parse(req.query["query"]);
-            } catch (e) {
-                res.status(400);
-                res.send(e.message);
-                return;
-            }
-    
+        let query = null;
+        try {
+            query = getJSON(req.query["query"]);
+        } catch (e) {
+            res.status(400);
+            res.send(`Parameter query is not valid: ${e.message}`);
+            return;
+        }
+
+        let sort = null;
+        try {
+            sort = getJSON(req.query["sort"]);
+        } catch (e) {
+            res.status(400);
+            res.send(`Parameter sort is not valid: ${e.message}`);
+            return;
+        }
+
+        let skip = null;
+        try {
+            skip = getNumber(req.query["skip"]);
+        } catch (e) {
+            res.status(400);
+            res.send(`Parameter skip is not valid: ${e.message}`);
+            return;
+        }
+
+        let limit = null;
+        try {
+            limit = getNumber(req.query["limit"]);
+        } catch (e) {
+            res.status(400);
+            res.send(`Parameter limit is not valid: ${e.message}`);
+            return;
+        }
+
+        if (query !== null || sort !== null || skip !== null || limit !== null) {
+
             const dataForQuery = Object.keys(data).map(_id => ({ ...data[_id], _id }));
     
-            const filteredData = new Query(query).find(dataForQuery).all();
+            const cursor = new Query(query || {}).find(dataForQuery);
     
+            if (sort !== null)
+                cursor.sort(sort);
+            
+            if (skip !== null)
+                cursor.skip(skip);
+            
+            if (limit !== null)
+                cursor.limit(limit);
+
+            const filteredData = cursor.all();
+
             if (req.query["easy-db-client"] === "true") {
                 const easyDbData = {};
                 filteredData.forEach(({ _id, ...row }) => easyDbData[_id] = row);
@@ -164,4 +203,32 @@ export function useEasyDB(app: Express, configuration: Partial<Configuration>) {
     });
     
     app.use("/easy-db-files", express.static("easy-db-files"));    
+}
+
+function getJSON(data: any): null | Record<string, unknown> {
+    if (data) {
+        const json = JSON.parse(data);
+        if (json !== null && typeof json === "object" && !Array.isArray(json)) {
+            return json;
+        } else {
+            throw new Error(`Value '${data}' is not a valid json.`);
+        }
+    } else {
+        return null;
+    }
+}
+
+function getNumber(data: any): null | number {
+    if (data) {
+        if (typeof data !== "string")
+            throw new Error(`Value '${data}' is not a number.`);
+
+        if (String(Number(data)) === data) {
+            return Number(data);
+        } else {
+            throw new Error(`Value '${data}' is not a number.`);
+        }
+    } else {
+        return null;
+    }
 }

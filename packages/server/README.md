@@ -2,8 +2,6 @@
 
 Lite&easy database REST server based on `easy-db-node` without any necessary configuration.
 
-> I recommend use this tool exclusively for developing.
-
 Include types for TypeScript.
 
 ## Features
@@ -27,11 +25,14 @@ $ npx easy-db-server
 Usage: easy-db-server --port <port> -html ./index.html
 
 Options:
-      --help     Show help                                             [boolean]
+      --help           Show help                                       [boolean]
       --version        Show version number                             [boolean]
   -p, --port           PORT                                             [number]
   -h, --html           Index HTML file                                  [string]
   -t, --easy-db-token  Security token                                   [string]
+  -v, --verbose        0 - no, 1 - yes                     [number] [default: 1]
+  -c, --cors           Use CORS                        [boolean] [default: true]
+  -s, --size           Request size limit             [string] [default: "15MB"]
 ```
 
 ## Code
@@ -61,7 +62,7 @@ app.listen(PORT, () =>
 
 ## REST API
 
-- `GET /api/:collection`: return whole collection
+- `GET /api/:collection`: return whole collection optionally with `query`, `sort`, `skip` and `limit` 
 - `GET /api/:collection/:id`: return one row from collection by id
 - `POST /api/:collection`: create row with random id `string` and return id
 - `PUT /api/:collection/:id`: replace row from collection by id
@@ -77,12 +78,13 @@ Use header `Easy-DB-Token` for your token.
 Just sent to POST or PUT anywhere in the body `{ "type": "EASY_DB_FILE", "url": "data:image/png;base64,iVB...YI=" }`.
 With GET you will receive `{ "type": "EASY_DB_FILE", "url": "/easy-db-files/j9pSCplbMx7U.png" }`
 
-### MongoDB like query
+### Query, sort, skip and limit
 
+Easy-db-server use [mingo](https://github.com/kofrasa/mingo) library that allow you to use MongoDB like query, sort, skip and limit.
 For documentation on using query operators see [MongoDB](https://docs.mongodb.com/manual/reference/operator/query/).
 
 ```
-GET http://localhost:80/api/user?query={age:{$gt:18}}
+GET http://localhost:80/api/user?query={"age":{"$gt":18}}&sort={"name":1,"age":-1}&skip=20&limit=10
 ```
 
 ## Files

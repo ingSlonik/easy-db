@@ -69,25 +69,6 @@ describe('Easy DB server', () => {
         });
     });
 
-    it('GET all as easy-db-client with MongoDB like query', (done) => {
-        const query = { b: "Item2" };
-        request(server).get(`/api/test?easy-db-client=true&query=${JSON.stringify(query)}`).set("Easy-DB-Token", TOKEN).end((err, res) => {
-            const body = res.body;
-            assert.equal(res.status, 200);
-            assert.isNotArray(body);
-            Object.values(body).forEach(value => assert.include(value, query));
-            done();
-        });
-    });
-
-    it('GET all with wrong MongoDB like query', (done) => {
-        request(server).get(`/api/test?easy-db-client=true&query=abc`).set("Easy-DB-Token", TOKEN).end((err, res) => {
-            assert.equal(res.status, 400);
-            assert.include(res.text, "JSON");
-            done();
-        });
-    });
-
     it('POST and GET one', (done) => {
         const item = { a: "Item1" };
 
@@ -156,6 +137,83 @@ describe('Easy DB server', () => {
                     assert.deepEqual(body, null);
                     done();
                 });
+            });
+        });
+    });
+
+    
+    it('GET all as easy-db-client with MongoDB like query', (done) => {
+        const query = { b: "Item2" };
+        request(server).get(`/api/test?easy-db-client=true&query=${JSON.stringify(query)}`).set("Easy-DB-Token", TOKEN).end((err, res) => {
+            const body = res.body;
+            assert.equal(res.status, 200);
+            assert.isNotArray(body);
+            Object.values(body).forEach(value => assert.include(value, query));
+            done();
+        });
+    });
+
+    it('GET all with wrong MongoDB like query', (done) => {
+        request(server).get(`/api/test?easy-db-client=true&query=abc`).set("Easy-DB-Token", TOKEN).end((err, res) => {
+            assert.equal(res.status, 400);
+            assert.include(res.text, "JSON");
+            done();
+        });
+    });
+
+    it('GET all with query and sort', (done) => {
+        request(server).post("/api/test").set("Easy-DB-Token", TOKEN).send({ query: true, value: Math.random() })
+        .end((err, res) => {
+            request(server).post("/api/test").set("Easy-DB-Token", TOKEN).send({ query: true, value: Math.random() })
+            .end((err, res) => {
+                request(server)
+                .get(`/api/test?&query=${JSON.stringify({ query: true })}&sort=${JSON.stringify({ value: -1 })}`)
+                .set("Easy-DB-Token", TOKEN)
+                .end((err, res) => {
+                    const body = res.body;
+                    assert.equal(res.status, 200);
+                    assert.isArray(body);
+
+                    let rowBefore = null;
+                    body.forEach(row => {
+                        if (rowBefore !== null)
+                            assert.isTrue(
+                                rowBefore.value >= row.value,
+                                `Result is not sorted (${rowBefore.value} >= ${row.value}).`
+                            );
+
+                        rowBefore = row;
+                    });
+                    done();
+                });
+            });
+        });
+    });
+
+    it('GET all with limit', (done) => {
+        request(server).get(`/api/test?limit=2`).set("Easy-DB-Token", TOKEN).end((err, res) => {
+            const body = res.body;
+            assert.equal(res.status, 200);
+            assert.isArray(body);
+            assert.strictEqual(body.length, 2);
+            done();
+        });
+    });
+
+    it('GET all with skip', (done) => {
+        request(server).get(`/api/test`).set("Easy-DB-Token", TOKEN).end((err, resWithout) => {
+            request(server).get(`/api/test?skip=2`).set("Easy-DB-Token", TOKEN).end((err, resWith) => {
+                const bodyWithout = resWithout.body;
+                assert.equal(resWithout.status, 200);
+                assert.isArray(bodyWithout);
+    
+                const bodyWith = resWith.body;
+                assert.equal(resWith.status, 200);
+                assert.isArray(bodyWith);
+     
+                assert.strictEqual(bodyWith.length, bodyWithout.length - 2);
+                    
+                done();
             });
         });
     });

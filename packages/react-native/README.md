@@ -1,6 +1,6 @@
 # Easy DB for react-native
 
-![Easy DB logo](../../logo.svg "Easy DB logo")
+![Easy DB logo](https://ingslonik.github.io/easy-db/logo.svg "Easy DB logo")
 
 Lite&easy database for react-native, powered by `easy-db-code`.
 Not create any database structure, just use it.

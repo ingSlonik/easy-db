@@ -2,10 +2,10 @@
 
 ![Easy DB logo](logo.svg "Easy DB logo")
 
-Lite&easy database for the same interface all JavaScript environments.
+Lite&easy database for the same interface for all JavaScript environments.
 The same interface can be used in Node, Web, Mobile, Cloud, Server and Develop applications.
 
-This database is NoSQL intended for developing and for less complex structures.
+This database is NoSQL, intended for developing and for less complex production structures.
 
 1. Not create any database structure, just use it. With the first called line in code the db is create itself.
 2. Whole content is easy **readable** and **editable** in JSON structure.

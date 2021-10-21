@@ -57,14 +57,6 @@ describe('Easy DB client', () => {
         assert.isNotArray(data);
     });
 
-    it('select with query', async () => {
-        const query = { second: 1 };
-        const data = await select("test", query);
-        assert.isObject(data);
-        assert.isNotArray(data);
-        Object.values(data).forEach(value => assert.deepNestedInclude(value, query));
-    });
-
     it('select', async () => {
         const id = await insert("test", { myFirst: 2 });
         const data = await select("test", id);
@@ -83,6 +75,45 @@ describe('Easy DB client', () => {
         await remove("test", id);
         const data = await select("test", id);
         assert.deepEqual(data, null);
+    });
+
+    it('select with query', async () => {
+        const query = { second: 1 };
+        const data = await select("test", { query });
+        assert.isObject(data);
+        assert.isNotArray(data);
+        Object.values(data).forEach(value => assert.deepNestedInclude(value, query));
+    });
+
+    it('select with query and sort', async () => {
+        await insert("test", { query: true, value: Math.random() });
+        await insert("test", { query: true, value: Math.random() });
+
+        const data = await select<{ value: number }>("test", { query: { query: true }, sort: { value: - 1 }});
+    
+        let rowBefore = null;
+        Object.values(data).forEach(row => {
+            if (rowBefore !== null)
+                assert.isTrue(
+                    rowBefore.value >= row.value,
+                    `Result is not sorted (${rowBefore.value} >= ${row.value}).`
+                );
+
+            rowBefore = row;
+        });   
+    });
+
+    it('select with limit', async () => {
+        const data = await select("test", { limit: 2 });
+
+        assert.strictEqual(Object.keys(data).length, 2);
+    });
+
+    it('GET all with skip', async () => {
+        const dataWithout = await select("test");
+        const dataWith = await select("test", { skip: 2 });
+        
+        assert.strictEqual(Object.keys(dataWith).length, Object.keys(dataWithout).length - 2);
     });
 
     after(() => {

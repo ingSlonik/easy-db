@@ -9,12 +9,20 @@ export type File = {
     url: string,
 };
 
+export type Query = {
+    query?: Record<string, any>,
+    sort?: Record<string, any>,
+    skip?: number,
+    limit?: number,
+};
+
 export interface Insert {
     (collection: string, row: Row | ((id: Id) => Row)): Promise<string>; 
 };
 export interface Select {
-    <T extends Row, Q extends { [key: string]: any }>(collection: string, query?: Q): Promise<Data<T>>;
-    <T extends Row>(collection: string, id: string): Promise<null | T>;
+    <T extends Row>(collection: string): Promise<Data<T>>;
+    <T extends Row>(collection: string, idOrQuery: Query): Promise<Data<T>>;
+    <T extends Row>(collection: string, idOrQuery: string): Promise<null | T>;
 };
 export interface Update {
     (collection: string, id: Id, row: Row): Promise<void>;
@@ -43,7 +51,7 @@ export default function easyDBClient(configuration: Partial<Configuration>): API
         ...configuration,
     };
 
-    const insert = async (collection, row) => {
+    const insert: Insert = async (collection, row) => {
         if (typeof row === "function") {
             const id = await insert(collection, {});
             await update(collection, id, row(id));
@@ -66,7 +74,7 @@ export default function easyDBClient(configuration: Partial<Configuration>): API
         }
     };
 
-    const select = async (collection, idOrQuery) => {
+    const select: Select = async (collection: string, idOrQuery?: string | Query) => {
         let url = `${conf.server}api/${collection}`;
         if (typeof idOrQuery === "string") {
             // SelectRow
@@ -75,7 +83,26 @@ export default function easyDBClient(configuration: Partial<Configuration>): API
             // Select whole Data
             url += "?easy-db-client=true";
         } else if (typeof idOrQuery === "object") {
-            url += `?easy-db-client=true&query=${encodeURIComponent(JSON.stringify(idOrQuery))}`;
+            if (
+                typeof idOrQuery.query === "object"
+                || typeof idOrQuery.sort === "object"
+                || typeof idOrQuery.skip === "number"
+                || typeof idOrQuery.limit === "number"
+            ) {
+                url += `?easy-db-client=true`;
+                if (typeof idOrQuery.query === "object")
+                    url += `&query=${encodeURIComponent(JSON.stringify(idOrQuery.query))}`;
+                if (typeof idOrQuery.sort === "object")
+                    url += `&sort=${encodeURIComponent(JSON.stringify(idOrQuery.sort))}`;
+                if (typeof idOrQuery.skip === "number")
+                    url += `&skip=${encodeURIComponent(idOrQuery.skip)}`;
+                if (typeof idOrQuery.limit === "number")
+                    url += `&limit=${encodeURIComponent(idOrQuery.limit)}`;
+
+            } else {
+                // back compatibility
+                url += `?easy-db-client=true&query=${encodeURIComponent(JSON.stringify(idOrQuery))}`;
+            }
         }
     
         const response = await fetch(url, {
@@ -87,7 +114,7 @@ export default function easyDBClient(configuration: Partial<Configuration>): API
         return data;
     };
 
-    const update = async (collection, id, row) => {
+    const update: Update = async (collection, id, row) => {
         const url = `${conf.server}api/${collection}/${id}`;
         const response = await fetch(url, {
             method: "PUT",
@@ -96,7 +123,7 @@ export default function easyDBClient(configuration: Partial<Configuration>): API
         });
     };
 
-    const remove = async (collection, id) => {
+    const remove: Remove = async (collection, id) => {
         const url = `${conf.server}api/${collection}/${id}`;
         const response = await fetch(url, {
             method: "DELETE",

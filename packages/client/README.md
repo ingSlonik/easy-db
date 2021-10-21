@@ -25,8 +25,13 @@ const idOfRow = await insert("collection1", id => ({ id, myRow: 1 }));
 
 // SELECT
 const allCollection1 = await select("collection1");
-const userRows = await select("user", { age: { $gt : 18 } });
 const myRow1 = await select("collection1", idOfRow);
+const userRows = await select("user", {
+    query: { age: { $gt : 18 },
+    sort: { name: 1, age: -1 },
+    skip: 20,
+    limit: 10,
+});
 
 // UPDATE
 await update("collection1", idOfRow, { ...myRow1, update: 1 });

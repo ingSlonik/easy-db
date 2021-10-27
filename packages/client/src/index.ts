@@ -11,6 +11,7 @@ export type File = {
 
 export type Query = {
     query?: Record<string, any>,
+    projection?: Record<string, any>,
     sort?: Record<string, any>,
     skip?: number,
     limit?: number,
@@ -85,6 +86,7 @@ export default function easyDBClient(configuration: Partial<Configuration>): API
         } else if (typeof idOrQuery === "object") {
             if (
                 typeof idOrQuery.query === "object"
+                || typeof idOrQuery.projection === "object"
                 || typeof idOrQuery.sort === "object"
                 || typeof idOrQuery.skip === "number"
                 || typeof idOrQuery.limit === "number"
@@ -92,6 +94,8 @@ export default function easyDBClient(configuration: Partial<Configuration>): API
                 url += `?easy-db-client=true`;
                 if (typeof idOrQuery.query === "object")
                     url += `&query=${encodeURIComponent(JSON.stringify(idOrQuery.query))}`;
+                if (typeof idOrQuery.projection === "object")
+                    url += `&projection=${encodeURIComponent(JSON.stringify(idOrQuery.projection))}`;
                 if (typeof idOrQuery.sort === "object")
                     url += `&sort=${encodeURIComponent(JSON.stringify(idOrQuery.sort))}`;
                 if (typeof idOrQuery.skip === "number")

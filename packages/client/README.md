@@ -6,7 +6,7 @@ Lite&easy client for `easy-db-server` or other full REST server.
 The same API as using the `easy-db` directly.
 The same package for `browser`, `node` and `react-native`.
 Not create any database structure, just use it.
-MongoDB like queries for GET collection.
+MongoDB like query and projection operators for GET collection.
 
 Include types for TypeScript.
 
@@ -28,6 +28,7 @@ const allCollection1 = await select("collection1");
 const myRow1 = await select("collection1", idOfRow);
 const userRows = await select("user", {
     query: { age: { $gt : 18 },
+    projection: { name: 1, age: 1 },
     sort: { name: 1, age: -1 },
     skip: 20,
     limit: 10,

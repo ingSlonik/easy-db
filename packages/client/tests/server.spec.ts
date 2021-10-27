@@ -85,6 +85,18 @@ describe('Easy DB client', () => {
         Object.values(data).forEach(value => assert.deepNestedInclude(value, query));
     });
 
+    it('select with query and projection', async () => {
+        const query = { second: 1 };
+        const projection = { myFirst: 1 };
+        const data = await select("test", { query, projection });
+        assert.isObject(data);
+        assert.isNotArray(data);
+        Object.values(data).forEach(row => {
+            assert.isFalse(typeof row.myFirst === "undefined");
+            assert.isTrue(typeof row.second === "undefined");
+        });
+    });
+
     it('select with query and sort', async () => {
         await insert("test", { query: true, value: Math.random() });
         await insert("test", { query: true, value: Math.random() });

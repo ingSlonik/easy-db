@@ -64,7 +64,7 @@ app.listen(PORT, () =>
 
 ## REST API
 
-- `GET /api/:collection`: return whole collection optionally with `query`, `sort`, `skip` and `limit` 
+- `GET /api/:collection`: return whole collection optionally with `query`, `projection`, `sort`, `skip` and `limit` 
 - `GET /api/:collection/:id`: return one row from collection by id
 - `POST /api/:collection`: create row with random id `string` and return id
 - `PUT /api/:collection/:id`: replace row from collection by id
@@ -82,11 +82,11 @@ With GET you will receive `{ "type": "EASY_DB_FILE", "url": "/easy-db-files/j9pS
 
 ### Query, sort, skip and limit
 
-Easy-db-server use [mingo](https://github.com/kofrasa/mingo) library that allow you to use MongoDB like query, sort, skip and limit.
-For documentation on using query operators see [MongoDB](https://docs.mongodb.com/manual/reference/operator/query/).
+Easy-db-server use [mingo](https://github.com/kofrasa/mingo) library that allow you to use MongoDB like query, projection, sort, skip and limit.
+For documentation on using query and projection operators see [MongoDB](https://docs.mongodb.com/manual/reference/operator/query/).
 
 ```
-GET http://localhost:80/api/user?query={"age":{"$gt":18}}&sort={"name":1,"age":-1}&skip=20&limit=10
+GET http://localhost:80/api/user?query={"age":{"$gt":18}}&projection={"name":1,"age":1}&sort={"name":1,"age":-1}&skip=20&limit=10
 ```
 
 ## Files

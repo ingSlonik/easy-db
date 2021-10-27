@@ -153,6 +153,21 @@ describe('Easy DB server', () => {
         });
     });
 
+    it('GET all with projection', (done) => {
+        const query = { b: "Item2" };
+        const projection = { a: 1 };
+        request(server).get(`/api/test?query=${JSON.stringify(query)}&projection=${JSON.stringify(projection)}`).set("Easy-DB-Token", TOKEN).end((err, res) => {
+            const body = res.body;
+            assert.equal(res.status, 200);
+            assert.isArray(body);
+            body.forEach(row => {
+                assert.equal(typeof row._id, "string", "Row doesn't have id.");
+                assert.equal(typeof row.b, "undefined", "The projection didn't filter 'b' field.");
+            });
+            done();
+        });
+    });
+
     it('GET all with wrong MongoDB like query', (done) => {
         request(server).get(`/api/test?easy-db-client=true&query=abc`).set("Easy-DB-Token", TOKEN).end((err, res) => {
             assert.equal(res.status, 400);

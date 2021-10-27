@@ -79,6 +79,15 @@ export function useEasyDB(app: Express, configuration: Partial<Configuration>) {
             return;
         }
 
+        let projection = null;
+        try {
+            projection = getJSON(req.query["projection"]);
+        } catch (e) {
+            res.status(400);
+            res.send(`Parameter projection is not valid: ${e.message}`);
+            return;
+        }
+
         let sort = null;
         try {
             sort = getJSON(req.query["sort"]);
@@ -106,11 +115,11 @@ export function useEasyDB(app: Express, configuration: Partial<Configuration>) {
             return;
         }
 
-        if (query !== null || sort !== null || skip !== null || limit !== null) {
+        if (query !== null || projection !== null || sort !== null || skip !== null || limit !== null) {
 
             const dataForQuery = Object.keys(data).map(_id => ({ ...data[_id], _id }));
     
-            const cursor = new Query(query || {}).find(dataForQuery);
+            const cursor = new Query(query || {}).find(dataForQuery, projection);
     
             if (sort !== null)
                 cursor.sort(sort);

@@ -1,97 +1,95 @@
-import { basename } from "path";
+import { parse } from "path";
 
 import { Storage, File, Bucket } from "@google-cloud/storage";
 
-import mimeDB from "mime-db";
-import easyDB, { getRandomId, addToQueue, Data } from "easy-db-core";
-// export {} from "easy-db-core";
+import { easyDBNodeCore, getType, addToQueue, Backup, Configuration as NodeConfiguration, FileType } from "easy-db-node";
 
-type Configuration = {
+export type Configuration = Pick<NodeConfiguration, "cacheExpirationTime"> & {
     bucketName: string,
     /**
      * If is not set, the files will not be convert to URL.
      * The bucketNameFiles should be public for `allUsers`.
      */
     bucketNameFiles?: string,
+    bucketNameBackup?: string,
     projectId?: string,
     keyFilename?: string,
-    cacheExpirationTime?: number,
+    /** Write file once per [ms] */
     distanceWriteFileTime?: number,
-    readable?: boolean,
+    backup?: Backup,
 };
 
 export default function easyDBGoogleCloud(configuration: Configuration) {
     const {
-        bucketName, bucketNameFiles, keyFilename, projectId,
-        readable, cacheExpirationTime, distanceWriteFileTime
+        bucketName, bucketNameFiles, bucketNameBackup, keyFilename, projectId,
+        cacheExpirationTime, backup, distanceWriteFileTime
     } = configuration;
 
     const storage = new Storage({ keyFilename, projectId });
-    const bucket = storage.bucket(bucketName);
+    const bucketCollection = storage.bucket(bucketName);
     const bucketFiles = bucketNameFiles ? storage.bucket(bucketNameFiles) : null;
+    const bucketBackup = bucketNameBackup ? storage.bucket(bucketNameBackup) : null;
 
-    const distanceWriteFile = distanceWriteFileTime ? distance(writeFile, distanceWriteFileTime) : writeFile;
+    const distanceWriteFile = distanceWriteFileTime ? distance(distanceWriteFileTime) : writeFile;
 
-    return easyDB({
-        // cacheExpirationTime shouldn't be smaller than cacheExpirationTime
-        cacheExpirationTime: distanceWriteFileTime > cacheExpirationTime ? distanceWriteFileTime : cacheExpirationTime,
-        async saveCollection(name: string, data: Data) {
-            const file = bucket.file(`${name}.json`);
-            const fileContent = readable === true ? JSON.stringify(data, null, "    ") : JSON.stringify(data);
-            const bufferContent = Buffer.from(fileContent, "utf8");
-
-            await distanceWriteFile(file, bufferContent, "application/json", false);
-            return;
-        },
-        async loadCollection(name: string): Promise<null | Data> {
-            const file = bucket.file(`${name}.json`);
-
-            const [exists] = await file.exists();            
-            if (exists) {
-                const content = await readFile(file);
-
-                try {
-                    const data = JSON.parse(content);
-                    if (data !== null && typeof data === "object") {
-                        return data;
-                    } else {
-                        return null;
-                    }
-                } catch (e) {
-                    // save inconsistent data
-                    const wrongFileName = `${name}-wrong-${new Date().toISOString()}.json`;
-                    const wrongFile = bucket.file(wrongFileName);
-                    const wrongBufferContent = Buffer.from(content, "utf8");
-                    await distanceWriteFile(wrongFile, wrongBufferContent, "application/json", false);
-                    console.error(`Collection "${name}" is not parsable. It is save to "${wrongFileName}".`);
-                    return null;
+    function getBucket(type: FileType): Bucket {
+        switch (type) {
+            case "collection": return bucketCollection;
+            case "file":
+                if (bucketFiles) {
+                    return bucketFiles;
+                } else {
+                    throw new Error("Not set bucket for files.");
                 }
-            } else {
-                return null;
-            }
+            case "backup":
+                if (bucketBackup) {
+                    return bucketBackup;
+                } else {
+                    throw new Error("Not set bucket for backup.");
+                }
+        }
+    }
+
+    return easyDBNodeCore({
+        saveFiles: typeof bucketNameFiles === "string",
+        // cacheExpirationTime shouldn't be smaller than distanceWriteFileTime
+        cacheExpirationTime: (distanceWriteFileTime || 0) > (cacheExpirationTime || 0) ? (distanceWriteFileTime || null) : cacheExpirationTime,
+        backup: bucketNameBackup ? (backup || true) : false,
+        async getFileNames(type) {
+            const bucket = getBucket(type);
+            const [files] = await bucket.getFiles();
+            const nameFiles = files.map(file => file.name);
+            return nameFiles;
         },
-        ...(bucketFiles ? {
-            async saveFile(base64: string) {
-                const extension = getFileExtension(base64);
-                const fileName = await getFreeFileName(bucketFiles, extension);
+        async isFile(type, name) {
+            const bucket = getBucket(type);
+            const file = bucket.file(name);
+            const [exists] = await file.exists();
+            return exists;
+        },
+        async readFile(type, name) {
+            const bucket = getBucket(type);
+            const file = bucket.file(name);
+            return readFile(file);
+        },
+        async writeFile(type, name, fileContent) {
+            const bucket = getBucket(type);
+            const file = bucket.file(name);
 
-                const file = bucketFiles.file(`${fileName}`);
-                const fileContent = Buffer.from(getClearBase64(base64), "base64");
+            const { ext } = parse(name);
+            await distanceWriteFile(file, fileContent, getType(ext));
+            return file.publicUrl();
 
-                await writeFile(file, fileContent, getType(extension), true);
-
-                return file.publicUrl();
-            },
-            async removeFile(path: string) {
-                const fileName = basename(path);
-                const file = bucketFiles.file(fileName);
-                await file.delete();
-            }
-        } : {}),
+        },
+        async unlinkFile(type, name) {
+            const bucket = getBucket(type);
+            const file = bucket.file(name);
+            await file.delete();
+        },
     });
 }
 
-function writeFile(file: File, fileContent: Buffer, contentType: string, dbFile: boolean): Promise<void> {
+function writeFile(file: File, fileContent: Buffer, contentType: string): Promise<void> {
     return new Promise((resolve, reject) => {
         file.createWriteStream({
             resumable: false,
@@ -104,52 +102,19 @@ function writeFile(file: File, fileContent: Buffer, contentType: string, dbFile:
     });
 }
 
-function readFile(file: File): Promise<string> {
+function readFile(file: File): Promise<Buffer> {
     return new Promise((resolve, reject) => {
-        let buffer = Buffer.alloc(0);
+        const buffers: Buffer[] = [];
 
         file.createReadStream()
             .on("error", err => reject(err))
-            .on("data", chunk => buffer = Buffer.concat([buffer, chunk]))
-            .on("end", () => resolve(buffer.toString("utf8")))
+            .on("data", chunk => buffers.push(chunk))
+            .on("end", () => resolve(Buffer.concat(buffers)))
             .read();
     });
 }
 
-
-async function getFreeFileName(bucket: Bucket, extension: string): Promise<string> {
-    const [files] = await bucket.getFiles();
-    const nameFiles = files.map(file => file.name);
-
-    // TODO: throw after full dictionary
-    while (true) {
-        const fileName = `${getRandomId()}.${extension}`;
-        if (!nameFiles.includes(fileName)) {
-            return fileName;
-        }
-    }
-}
-
-// TODO: merge with easy-db-node
-// parser for most popular extensions
-const regexMimeType = new RegExp("^data:(.*);base64,", "gi");
-function getFileExtension(base64: string): string {
-    regexMimeType.lastIndex = 0;
-    const result = regexMimeType.exec(base64);
-    if (result && result[1]) {
-        return getExtension(result[1]);
-    } else {
-        return "bin";
-    }
-}
-
-function getClearBase64(base64: string): string {
-    const result = base64.split(';base64,');
-    return result[1] || base64;
-}
-
-type WriteFile = typeof writeFile;
-function distance(writeFile: WriteFile, delay: number): WriteFile {
+function distance(delay: number): typeof writeFile {
 
     const fileQueues: {
         [fileName: string]: {
@@ -171,7 +136,7 @@ function distance(writeFile: WriteFile, delay: number): WriteFile {
         process.exit();
     });
 
-    const distanceWriteFile: WriteFile = async (file, ...arg) => {
+    const distanceWriteFile: typeof writeFile = async (file, ...arg) => {
         const lastRef = async () => await distanceWriteFile(file, ...arg);
 
         if (!(file.name in fileQueues) || fileQueues[file.name].queue === null) {
@@ -200,23 +165,4 @@ function distance(writeFile: WriteFile, delay: number): WriteFile {
     };
 
     return distanceWriteFile;
-}
-
-function getExtension(type: string): string {
-    if (mimeDB[type]?.extensions) {
-        return mimeDB[type]?.extensions[0];
-    } else {
-        return "bin";
-    }
-}
-
-// TODO: improve performance
-function getType(extension: string): string {
-    for (const type in mimeDB) {
-        if (mimeDB[type]?.extensions.includes(extension)) {
-            return type;
-        }
-    }
-
-    return "application/binary";
 }

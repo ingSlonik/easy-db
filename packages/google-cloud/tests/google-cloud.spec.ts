@@ -8,6 +8,7 @@ const { insert, select, update, remove, file } = easyDB({
     keyFilename: resolve(__dirname, "keyFile.json"),
     bucketName: "easy-db-test",
     bucketNameFiles: "easy-db-files",
+    bucketNameBackup: "easy-db-backup",
     cacheExpirationTime: 1000,
     distanceWriteFileTime: 200,
 });
@@ -59,8 +60,8 @@ describe("Easy DB", () => {
             photo: file(DUMMY_FILE_TXT),
         });
         const data = await select("test", id);
-        assert.isString(data.photo.url);
-        assert.notEqual(data.photo.url, DUMMY_FILE_TXT);
+        assert.isString(data?.photo.url);
+        assert.notEqual(data?.photo.url, DUMMY_FILE_TXT);
         await remove("test", id);
     });
 
@@ -70,11 +71,11 @@ describe("Easy DB", () => {
             photo: file(DUMMY_FILE_PNG),
         });
         const data = await select("test", id);
-        assert.isString(data.photo.url);
-        assert.notEqual(data.photo.url, DUMMY_FILE_PNG);
+        assert.isString(data?.photo.url);
+        assert.notEqual(data?.photo.url, DUMMY_FILE_PNG);
         await remove("test", id);
     });
-    
+
     it("add two files in one row", async () => {
         const id = await insert("test", {
             name: "Example User",
@@ -82,10 +83,10 @@ describe("Easy DB", () => {
             text: file(DUMMY_FILE_TXT),
         });
         const data = await select("test", id);
-        assert.isString(data.picture.url);
-        assert.notEqual(data.picture.url, DUMMY_FILE_TXT, "First file is not converted.");
-        assert.isString(data.text.url);
-        assert.notEqual(data.text.url, DUMMY_FILE_PNG, "Second file is not converted.");
+        assert.isString(data?.picture.url);
+        assert.notEqual(data?.picture.url, DUMMY_FILE_TXT, "First file is not converted.");
+        assert.isString(data?.text.url);
+        assert.notEqual(data?.text.url, DUMMY_FILE_PNG, "Second file is not converted.");
         await remove("test", id);
     });
 

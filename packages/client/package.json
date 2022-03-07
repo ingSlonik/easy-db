@@ -1,6 +1,6 @@
 {
     "name": "easy-db-client",
-    "version": "2.2.1",
+    "version": "2.3.0",
     "description": "Lite&easy client for `easy-db-server` or other full REST server.",
     "main": "./lib/index.js",
     "types": "./lib/index.d.ts",
@@ -15,7 +15,7 @@
         "@types/mocha": "^8.2.1",
         "@types/node-fetch": "^2.5.8",
         "chai": "^4.3.4",
-        "easy-db-server": "^2.2.1",
+        "easy-db-server": "^2.3.0",
         "mocha": "^8.3.2",
         "node-fetch": "^2.6.1",
         "ts-node": "^9.1.1",

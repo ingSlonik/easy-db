@@ -64,8 +64,8 @@ describe('Easy DB', () => {
             photo: file(DUMMY_FILE),
         });
         const data = await select("test", id);
-        assert.isString(data.photo.url);
-        assert.notEqual(data.photo.url, DUMMY_FILE);
+        assert.isString(data?.photo.url);
+        assert.notEqual(data?.photo.url, DUMMY_FILE);
         await remove("test", id);
     });
 
@@ -76,10 +76,10 @@ describe('Easy DB', () => {
             photo: file(DUMMY_FILE),
         });
         const data = await select("test", id);
-        assert.isString(data.photo.url);
-        assert.notEqual(data.photo.url, DUMMY_FILE, "First file is not converted.");
-        assert.isString(data.picture.url);
-        assert.notEqual(data.picture.url, DUMMY_FILE, "Second file is not converted.");
+        assert.isString(data?.photo.url);
+        assert.notEqual(data?.photo.url, DUMMY_FILE, "First file is not converted.");
+        assert.isString(data?.picture.url);
+        assert.notEqual(data?.picture.url, DUMMY_FILE, "Second file is not converted.");
         await remove("test", id);
     });
 
@@ -89,7 +89,7 @@ describe('Easy DB', () => {
             photo: file(DUMMY_FILE),
         });
         const data = await select("test", id);
-        const filePath = resolve(data.photo.url)
+        const filePath = resolve(data?.photo.url)
         assert.isTrue(existsSync(filePath), "File is not it not in file system.");
         await remove("test", id);
     });
@@ -100,7 +100,7 @@ describe('Easy DB', () => {
             photo: file(DUMMY_FILE),
         });
         const data = await select("test", id);
-        const fileBase64 = readFileSync(resolve(data.photo.url), "base64");
+        const fileBase64 = readFileSync(resolve(data?.photo.url), "base64");
         assert.equal(fileBase64, DUMMY_FILE.substr(22));
         await remove("test", id);
     });
@@ -138,11 +138,11 @@ describe('Easy DB', () => {
             if (file.includes("test-damaged"))
                 await unlink(resolve(dbFolder, file));
         }
-        
+
         // create damaged json file
         await writeFile(resolve(__dirname, "..", "easy-db", "test-damaged.json"), "{ Damaged JSON }", "utf8");
         await insert("test-damaged", { fixed: "collection" });
-        
+
         // check files with test-damaged
         const files = await readdir(dbFolder);
         assert.lengthOf(files.filter(file => file.includes("test-damaged")), 2);
@@ -151,7 +151,7 @@ describe('Easy DB', () => {
     it('create backup', async () => {
         const backupPath = resolve(__dirname, "..", "backup");
         const backupFile = resolve(backupPath, "keep.zip");
-        
+
         if (existsSync(backupFile))
             await unlink(backupFile);
 
@@ -164,7 +164,7 @@ describe('Easy DB', () => {
         const backupPath = resolve(__dirname, "..", "backup");
         const backupFile = resolve(backupPath, "keep.zip");
         const backupOldFile = resolve(backupPath, "old.zip");
-        
+
         if (!existsSync(backupOldFile))
             await writeFile(backupOldFile, "Fake old backup file", "utf8");
         if (existsSync(backupFile))
@@ -185,7 +185,7 @@ describe('Easy DB', () => {
 
         date.setDate(date.getDate() - 1);
         assert.isTrue(keepName(getDayDate(date)), "Keep yesterdays backup");
-    
+
         date.setDate(date.getDate() - 59);
         date.setDate(2);
         assert.isFalse(keepName(getDayDate(date)), "Not keep backup before 2 months 2th day");

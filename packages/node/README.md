@@ -11,6 +11,7 @@ Include types for TypeScript.
 - The same interface in Node, Web, Mobile, Server or your own environment.
 - Easy reading and updating database without any special tool.
 - Handling files directly in easy-db.
+- Create your own easy-db service.
 
 ## API
 
@@ -89,3 +90,8 @@ Only open file and edit them.
   "ukAK0wN8xvwK": { "myRow": 2, "update": 36 }
 }
 ```
+
+### Create your own easy-db service
+
+You can your own service for easy-db for saving data anywhere.
+As example is service saving data to "Google Cloud Storage", [code is here](https://github.com/ingSlonik/easy-db/blob/master/packages/google-cloud/src/index.ts).

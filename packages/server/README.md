@@ -39,10 +39,10 @@ Options:
 
 ## Code
 
-`app` variable is the `express` instance.
+Usage with `easy-db-node`.
 
 ```js
-import { express, useCors, useToken, useEasyDB } from "easy-db-server";
+import { express, useEasyDB } from "easy-db-server";
 // or
 const { express, useEasyDB } = require("easy-db-server");
 
@@ -54,12 +54,26 @@ useEasyDB(app, {
   verbose: 1,
   requestSizeLimit: "15MB",
   cors: true,
-  token: "takenHash",
+  token: "tokenHash",
 });
 
 app.listen(PORT, () =>
   console.log(`Easy DB server is running at http://localhost:${PORT}.`)
 );
+```
+
+### Usage with different easy-db service
+
+```js
+import { express, useEasyDB } from "easy-db-server";
+import easyDBGoogleCloud from "easy-db-google-cloud";
+
+const easyDB = easyDBGoogleCloud({ ... });
+
+const app = express();
+useEasyDB(app, {}, easyDB);
+
+app.listen(80);
 ```
 
 ## REST API
@@ -80,7 +94,7 @@ Use header `Easy-DB-Token` for your token.
 Just sent to POST or PUT anywhere in the body `{ "type": "EASY_DB_FILE", "url": "data:image/png;base64,iVB...YI=" }`.
 With GET you will receive `{ "type": "EASY_DB_FILE", "url": "/easy-db-files/j9pSCplbMx7U.png" }`
 
-### Query, sort, skip and limit
+### Query, projection, sort, skip and limit
 
 Easy-db-server use [mingo](https://github.com/kofrasa/mingo) library that allow you to use MongoDB like query, projection, sort, skip and limit.
 For documentation on using query and projection operators see [MongoDB](https://docs.mongodb.com/manual/reference/operator/query/).

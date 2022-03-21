@@ -2,7 +2,7 @@ import express, { Express } from "express";
 import cors from "cors";
 
 import { Query } from "mingo";
-import easyDB, { Configuration as ConfigurationNode } from "easy-db-node";
+import easyDBNode, { API, Configuration as ConfigurationNode } from "easy-db-node";
 
 export { default as express } from "express";
 
@@ -20,7 +20,7 @@ export type Configuration = {
     token: null | string,
 } & Partial<ConfigurationNode>;
 
-export function useEasyDB(app: Express, configuration: Partial<Configuration>) {
+export function useEasyDB(app: Express, configuration: Partial<Configuration>, easyDB?: API) {
     const conf: Configuration = {
         verbose: 1,
         cacheExpirationTime: 15000,
@@ -30,7 +30,7 @@ export function useEasyDB(app: Express, configuration: Partial<Configuration>) {
         ...configuration,
     };
 
-    const { select, insert, update, remove } = easyDB(conf);
+    const { select, insert, update, remove } = easyDB ? easyDB : easyDBNode(conf);
 
     const { verbose } = conf;
 

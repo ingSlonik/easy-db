@@ -53,6 +53,7 @@ export function useEasyDB(app: Express, configuration: Partial<Configuration>, e
     
             if (
                 req.method === "OPTIONS" ||
+                !req.path.startsWith("/api") ||
                 (typeof tokenFromHeader === "string" && tokenFromHeader === conf.token)
             ) {
                 next();
@@ -210,8 +211,10 @@ export function useEasyDB(app: Express, configuration: Partial<Configuration>, e
         res.type("json");
         res.send(JSON.stringify(null));
     });
-    
-    app.use("/easy-db-files", express.static("easy-db-files"));    
+
+    if (conf.fileFolder) {
+        app.use("/easy-db-files", express.static(conf.fileFolder));    
+    }
 }
 
 function getJSON(data: any): null | Record<string, unknown> {

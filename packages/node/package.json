@@ -1,6 +1,6 @@
 {
     "name": "easy-db-node",
-    "version": "2.3.1",
+    "version": "2.3.2",
     "description": "Lite&easy database for Node.js.",
     "main": "./lib/index.js",
     "types": "./lib/index.d.ts",

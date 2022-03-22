@@ -28,7 +28,7 @@
     },
     "dependencies": {
         "cors": "^2.8.5",
-        "easy-db-node": "^2.3.0",
+        "easy-db-node": "^2.3.1",
         "express": "^4.17.1",
         "mingo": "^4.2.0",
         "yargs": "^16.2.0"

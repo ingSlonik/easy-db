@@ -4,7 +4,8 @@
         "module": "commonjs",
         "outDir": "lib",
         "declaration": true,
-        "sourceMap": true
+        "sourceMap": true,
+        "skipLibCheck": true
     },
     "include": [
         "src/**/*.ts"

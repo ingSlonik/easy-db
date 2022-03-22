@@ -15,7 +15,7 @@ export type Configuration = Pick<ConfigurationCore, "cacheExpirationTime"> & {
     backupFolder?: string,
     backup: boolean | (Backup & {
         /** OBSOLETE - back compatibility */
-        folder: string,
+        folder?: string,
     });
 };
 
@@ -58,7 +58,12 @@ export default function easyDBNode(conf: Partial<Configuration>) {
             return existsSync(resolveFolder(type, name));
         },
         async getFileNames(type) {
-            return readdir(resolveFolder(type), "utf-8");
+            const folder = resolveFolder(type);
+            if (await isDirectory(folder)) {
+                return readdir(resolveFolder(type), "utf-8");
+            } else {
+                return [];
+            }
         },
         async readFile(type, name) {
             return readFile(resolveFolder(type, name));

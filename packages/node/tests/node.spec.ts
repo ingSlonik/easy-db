@@ -12,8 +12,8 @@ const DUMMY_FILE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAA
 const { insert, select, update, remove, file } = easyDB({
     fileFolder: "./files",
     fileUrl: "./files",
+    backupFolder: "backup",
     backup: {
-        folder: "backup",
         getActualName: () => "keep",
         keepName: name => name === "keep",
     },

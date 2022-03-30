@@ -84,7 +84,10 @@ export default function easyDBGoogleCloud(configuration: Configuration) {
         async unlinkFile(type, name) {
             const bucket = getBucket(type);
             const file = bucket.file(name);
-            await file.delete();
+            const [exists] = await file.exists();
+            if (exists) {
+                await file.delete();
+            }
         },
     });
 }

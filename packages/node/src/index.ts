@@ -85,7 +85,10 @@ export default function easyDBNode(conf: Partial<Configuration>) {
             }
         },
         async unlinkFile(type, name) {
-            await unlink(resolveFolder(type, basename(name)));
+            const path = resolveFolder(type, basename(name));
+            if (existsSync(path)) {
+                await unlink(path);
+            }
         },
     });
 }

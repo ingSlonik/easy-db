@@ -108,7 +108,9 @@ export default function easyDBNodeCore({ cacheExpirationTime, backup, saveFiles,
             return await writeFile("file", name, Buffer.from(getClearBase64(base64), "base64"));
         },
         removeFile: !saveFiles ? undefined : async (path: string) => {
-            await unlinkFile("file", path);
+            if (await isFile("file", path)) {
+                await unlinkFile("file", path);
+            }
         }
     });
 }

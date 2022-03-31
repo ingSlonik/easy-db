@@ -62,10 +62,26 @@ export default function easyDBGoogleCloud(configuration: Configuration) {
             return nameFiles;
         },
         async isFile(type, name) {
-            const bucket = getBucket(type);
-            const file = bucket.file(name);
-            const [exists] = await file.exists();
-            return exists;
+            if (name.length === 0) {
+                console.warn("File name is not specified!");
+                return false;
+            } else {
+                let exists = false;
+                try {
+                    const bucket = getBucket(type);
+                    const file = bucket.file(name);
+                    const [fileExists] = await file.exists();
+                    exists = fileExists;
+                } catch (e) {
+                    if (e instanceof Error) {
+                        console.error(e);
+                    } else {
+                        console.error(JSON.stringify(e));    
+                    }
+                    return false;
+                }
+                return exists;
+            }
         },
         async readFile(type, name) {
             const bucket = getBucket(type);
@@ -82,12 +98,9 @@ export default function easyDBGoogleCloud(configuration: Configuration) {
 
         },
         async unlinkFile(type, name) {
-            const bucket = getBucket(type);
-            const file = bucket.file(name);
-            const [exists] = await file.exists();
-            if (exists) {
+                const bucket = getBucket(type);
+                const file = bucket.file(name);
                 await file.delete();
-            }
         },
     });
 }

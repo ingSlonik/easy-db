@@ -15,6 +15,23 @@ export type File = {
     url: string,
 };
 
+type UrlFile = {
+    id: undefined,
+    type: "EASY_DB_FILE",
+    url: string,
+}
+
+type NewFile = {
+    id: undefined,
+    type: "EASY_DB_FILE",
+    url: string, // base64
+}
+
+type SavedFile = {
+    id: string,
+    type: "EASY_DB_FILE",
+    url: string,
+}
 
 type Data = any;
 type FileRow = {
@@ -41,6 +58,19 @@ export function isFile(data: Data): data is File {
     } else {
         return false;
     }
+}
+
+function isNewFile(file: File): file is NewFile {
+    return isBase64(file.url);
+}
+
+function isUrlFile(file: File): file is UrlFile {
+    // compatibility...
+    return (typeof file.id !== "string" || file.id.length === 0) && !isBase64(file.url);
+}
+
+function isSavedFile(file: File): file is SavedFile {
+    return typeof file.id === "string" && file.id.length > 0 && !isBase64(file.url);
 }
 
 function isFileRow(row: any): row is FileRow {
@@ -71,12 +101,12 @@ export async function replaceFileData(
     collection: string,
     rowId: string,
     fileData: FileData,
-    saveFile: (bace64: string) => Promise<string>,
+    saveFile: (base64: string) => Promise<string>,
 ): Promise<[ Data, FileData ]> {
     let newFileData = { ...fileData };
 
     if (isFile(data)) {
-        if (typeof data.id === "string") {
+        if (isSavedFile(data)) {
             // file is parsed
             const fileRow = newFileData[data.id];
             if (isFileRow(fileRow)) {
@@ -100,7 +130,7 @@ export async function replaceFileData(
             return [ data, newFileData ];
         } else {
             // file is not parsed
-            if (isBase64(data.url)) {
+            if (isNewFile(data)) {
                 // new file to save to server
                 const url = await saveFile(data.url);
                 const use = [ { collection, rowId } ];
@@ -154,15 +184,15 @@ export async function removeUpdatedFiles(
 
     const newFiles = getFilesFromData(newData);
     const oldFiles = getFilesFromData(oldData);
-    
+
     // now files are already in DB, not empty id
     const newFilesIds = newFiles.map(f => f.id);
-    
+
     for (const oldFile of oldFiles) {
         const { id, url } = oldFile;
         if (newFilesIds.indexOf(id) < 0) {
             // these files was in ond row and is not in new row
-            if (typeof id === "string" && !isBase64(url)) {
+            if (isSavedFile(oldFile)) {
                 // when was saved on this server
                 const fileRow = newFileData[id];
                 if (isFileRow(fileRow)) {

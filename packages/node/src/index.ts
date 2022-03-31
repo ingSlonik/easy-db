@@ -55,6 +55,10 @@ export default function easyDBNode(conf: Partial<Configuration>) {
         cacheExpirationTime,
         backup,
         async isFile(type, name) {
+            if (name.length === 0) {
+                console.warn("File name is not specified.");
+                return false;
+            }
             return existsSync(resolveFolder(type, name));
         },
         async getFileNames(type) {

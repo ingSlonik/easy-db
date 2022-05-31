@@ -1,6 +1,6 @@
 {
     "name": "easy-db-core",
-    "version": "2.3.5",
+    "version": "2.3.6",
     "description": "Core for Lite&easy database.",
     "main": "./lib/index.js",
     "types": "./lib/index.d.ts",

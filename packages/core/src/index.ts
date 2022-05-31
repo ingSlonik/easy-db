@@ -35,7 +35,7 @@ export interface API {
 
 export { File } from "./file";
 export interface Insert {
-    (collection: string, row: Row | ((id: Id) => Row)): Promise<string>; 
+    (collection: string, row: Row | ((id: Id) => Row)): Promise<string>;
 };
 export interface Select {
     <T extends Row>(collection: string): Promise<Data<T>>;
@@ -52,7 +52,7 @@ export interface Remove {
 // helpers
 
 async function getData(backend: BackendInternal, collectionName: string): Promise<Data> {
-    const data = backend.cache ? 
+    const data = backend.cache ?
         await backend.cache.get(backend.loadCollection, collectionName) :
         await backend.loadCollection(collectionName);
 
@@ -84,18 +84,18 @@ async function insert(backend: BackendInternal, collection: string, row: Row | (
     if (typeof backend.saveFile === "function") {
         const fileData = await getData(backend, FILE_COLLECTION) as FileData;
 
-        const [ rowWithReplacedFileData, newFileData ] = await replaceFileData(
+        const isFileDataChanged = await replaceFileData(
             row,
             collection,
             newId,
             fileData,
             backend.saveFile,
         );
-        await setData(backend, FILE_COLLECTION, newFileData);
-        wholeCollection[newId] = rowWithReplacedFileData;
-    } else {
-        wholeCollection[newId] = row;
+        if (isFileDataChanged) {
+            await setData(backend, FILE_COLLECTION, fileData);
+        }
     }
+    wholeCollection[newId] = row;
     await setData(backend, collection, wholeCollection);
 
     return newId;
@@ -127,27 +127,27 @@ async function update(backend: BackendInternal, collection: string, id: Id, row:
     const wholeCollection = await getData(backend, collection);
     if (typeof backend.saveFile === "function" && typeof backend.removeFile === "function") {
         const fileData = await getData(backend, FILE_COLLECTION) as FileData;
-        
-        const [ rowWithReplacedFileData, newFileData ] = await replaceFileData(
+
+        const isFileDataChangedWithReplace = await replaceFileData(
             row,
             collection,
             id,
             fileData,
             backend.saveFile,
         );
-        const newFileDataWithRemovedRows = await removeUpdatedFiles(
+        const isFileDataChangedWithRemove = await removeUpdatedFiles(
             wholeCollection[id],
-            rowWithReplacedFileData,
+            row,
             id,
             collection,
-            newFileData,
+            fileData,
             backend.removeFile,
         );
-        await setData(backend, FILE_COLLECTION, newFileDataWithRemovedRows);
-        wholeCollection[id] = rowWithReplacedFileData;
-    } else {
-        wholeCollection[id] = row;
+        if (isFileDataChangedWithReplace || isFileDataChangedWithRemove) {
+            await setData(backend, FILE_COLLECTION, fileData);
+        }
     }
+    wholeCollection[id] = row;
     await setData(backend, collection, wholeCollection);
 }
 async function queueUpdate(backend: BackendInternal, collection: string, id: Id, row: Row) {
@@ -161,7 +161,7 @@ async function remove(backend: BackendInternal, collection: string, id: Id) {
     if (typeof backend.removeFile === "function") {
         const fileData = await getData(backend, FILE_COLLECTION) as FileData;
 
-        const newFileDataWithRemovedRows = await removeUpdatedFiles(
+        const isFileDataChanged = await removeUpdatedFiles(
             wholeCollection[id],
             null,
             id,
@@ -169,7 +169,9 @@ async function remove(backend: BackendInternal, collection: string, id: Id) {
             fileData,
             backend.removeFile,
         );
-        await setData(backend, FILE_COLLECTION, newFileDataWithRemovedRows);
+        if (isFileDataChanged) {
+            await setData(backend, FILE_COLLECTION, fileData);
+        }
     }
 
     delete wholeCollection[id];
@@ -188,7 +190,7 @@ export { getFile as file } from "./file";
 
 export default (backend: Backend): API => {
     const { cacheExpirationTime, ...intersection } = backend;
-    
+
     const backendInternal: BackendInternal = {
         ...intersection,
         cache: cacheExpirationTime === null ? null : new Cache<Data>(cacheExpirationTime),
@@ -201,7 +203,7 @@ export default (backend: Backend): API => {
         },
         async insert(collection: string, row: Row | ((id: Id) => Row)) {
             return await queueInsert(backendInternal, collection, row);
-        }, 
+        },
         async select(collection: string, id?: Id) {
             return await queueSelect(backendInternal, collection, typeof id === "string" ? id : null);
         },
@@ -210,6 +212,6 @@ export default (backend: Backend): API => {
         },
         async remove(collection: string, id: Id) {
             return await queueRemove(backendInternal, collection, id);
-        }, 
+        },
     };
 };

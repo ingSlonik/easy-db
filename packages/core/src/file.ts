@@ -88,7 +88,7 @@ function isFileRow(row: any): row is FileRow {
     }
 }
 
-export function getFile(url: string): File { 
+export function getFile(url: string): File {
     return {
         id: null,
         type: "EASY_DB_FILE",
@@ -96,91 +96,109 @@ export function getFile(url: string): File {
     };
 }
 
+/**
+ * Due to performance issue up to 100MB collection are sending reference of data.
+ * @param dataRef Reference of the data. The variable content can be changed!
+ * @param collection 
+ * @param rowId 
+ * @param fileDataRef Reference of the file data. The variable content can be changed!
+ * @param saveFile 
+ * @returns is fileDataRef changed
+ */
 export async function replaceFileData(
-    data: Data, 
+    dataRef: Data,
     collection: string,
     rowId: string,
-    fileData: FileData,
+    fileDataRef: FileData,
     saveFile: (base64: string) => Promise<string>,
-): Promise<[ Data, FileData ]> {
-    let newFileData = { ...fileData };
+): Promise<boolean> {
+    let isFileDataRefChanged = false;
 
-    if (isFile(data)) {
-        if (isSavedFile(data)) {
+    if (isFile(dataRef)) {
+        if (isSavedFile(dataRef)) {
             // file is parsed
-            const fileRow = newFileData[data.id];
+            const fileRow = fileDataRef[dataRef.id];
             if (isFileRow(fileRow)) {
                 // update FileRow for situation when is one file in more collections/rows
-                newFileData[data.id] = {
-                    ...fileRow,
-                    use: [
-                        ...fileRow.use.filter(use => use.collection !== collection && use.rowId !== rowId),
-                        { collection, rowId }
-                    ],
-                };
+
+                const contains = fileRow.use.reduce((contains, use) => contains || (use.collection === collection && use.rowId === rowId), false);
+                if (contains) {
+                    // this file is already in use in fileRow
+                } else {
+                    isFileDataRefChanged = true;
+                    fileDataRef[dataRef.id] = {
+                        ...fileRow,
+                        use: [
+                            ...fileRow.use,
+                            { collection, rowId }
+                        ],
+                    };
+                }
             } else {
                 // for situation that FileRow was lost
-                newFileData[data.id] = {
-                    id: data.id,
-                    url: data.url,
-                    use: [ { collection, rowId } ],
+                isFileDataRefChanged = true;
+                fileDataRef[dataRef.id] = {
+                    id: dataRef.id,
+                    url: dataRef.url,
+                    use: [{ collection, rowId }],
                 };
             }
 
-            return [ data, newFileData ];
         } else {
             // file is not parsed
-            if (isNewFile(data)) {
+            if (isNewFile(dataRef)) {
                 // new file to save to server
-                const url = await saveFile(data.url);
-                const use = [ { collection, rowId } ];
-                const id = getFreeId(fileData);
+                const url = await saveFile(dataRef.url);
+                const use = [{ collection, rowId }];
+                const id = getFreeId(fileDataRef);
                 const file: File = { id, type: "EASY_DB_FILE", url };
 
-                newFileData[id] = { id, url, use };
-                return [ file, newFileData ];
+                (dataRef as File).id = id;
+                dataRef.type = "EASY_DB_FILE";
+                dataRef.url = url;
+
+                isFileDataRefChanged = true;
+                fileDataRef[id] = { id, url, use };
             } else {
                 // the url is defined by user
-                return [ data, newFileData ];
             }
         }
-    } else if (Array.isArray(data)) {
-        const newData = [];
-        for (const value of data) {
-            const [ newValueData, newValueFileData ] = await replaceFileData(
-                value, collection, rowId, newFileData, saveFile
-            );
-            newData.push(newValueData);
-            newFileData = newValueFileData;
+    } else if (Array.isArray(dataRef)) {
+        for (const valueRef of dataRef) {
+            const isChanged = await replaceFileData(valueRef, collection, rowId, fileDataRef, saveFile);
+            isFileDataRefChanged = isFileDataRefChanged || isChanged;
         }
-        return [ newData, newFileData ];
-    } else if (typeof data === "object" && data !== null) {
+    } else if (typeof dataRef === "object" && dataRef !== null) {
         const newRow = {};
-        for (const key in data) {
-            newRow[key] = await replaceFileData(data[key], collection, rowId, fileData, saveFile);
-            const [ newValueData, newValueFileData ] = await replaceFileData(
-                data[key], collection, rowId, newFileData, saveFile
-            );
-            newRow[key] = newValueData;
-            newFileData = newValueFileData;
+        for (const key in dataRef) {
+            const isChanged = await replaceFileData(dataRef[key], collection, rowId, fileDataRef, saveFile);
+            isFileDataRefChanged = isFileDataRefChanged || isChanged;
         }
-        return [ newRow, newFileData ];
-    } else {
-        return [ data, fileData ];
     }
+
+    return isFileDataRefChanged;
 }
 
-// this function has to be called after replaceFileData
-// that means that here is not new file to save
+/**
+ * this function has to be called after replaceFileData
+ * that means that here is not new file to save
+ * @param oldData 
+ * @param newData 
+ * @param rowId 
+ * @param collection 
+ * @param fileDataRef Reference of the file data. The variable content can be changed!
+ * @param removeFile 
+ * @returns is fileDataRef changed
+ */
 export async function removeUpdatedFiles(
     oldData: Data,
     newData: Data,
     rowId: string,
     collection: string,
-    fileData: FileData,
+    fileDataRef: FileData,
     removeFile: (filePath: string) => Promise<void>,
-): Promise<FileData> {
-    const newFileData = { ...fileData };
+): Promise<boolean> {
+    let isFileDataRefChanged = false;
 
     const newFiles = getFilesFromData(newData);
     const oldFiles = getFilesFromData(oldData);
@@ -194,18 +212,20 @@ export async function removeUpdatedFiles(
             // these files was in ond row and is not in new row
             if (isSavedFile(oldFile)) {
                 // when was saved on this server
-                const fileRow = newFileData[id];
+                const fileRow = fileDataRef[id];
                 if (isFileRow(fileRow)) {
                     // remove this collection/worId from FileRow
                     const use = fileRow.use.filter(use => use.collection !== collection && use.rowId !== rowId);
 
                     if (use.length === 0) {
                         // remove file only when is not used
-                        delete newFileData[id];
+                        isFileDataRefChanged = true;
+                        delete fileDataRef[id];
                         removeFile(url);
                     } else {
                         // if file is used in other collection/worId keep file
-                        newFileData[id] = { ...fileRow, use };
+                        isFileDataRefChanged = true;
+                        fileDataRef[id] = { ...fileRow, use };
                     }
                 } else {
                     // remove file without FileRow
@@ -215,13 +235,13 @@ export async function removeUpdatedFiles(
         }
     }
 
-    return newFileData;
+    return isFileDataRefChanged;
 }
 
 function getFilesFromData(data: Data, files: File[] = []): File[] {
     if (isFile(data)) {
         if (files.map(f => f.id).indexOf(data.id) < 0) {
-            files = [ ...files, data ];
+            files = [...files, data];
         }
     } else if (Array.isArray(data)) {
         data.forEach(value => files = getFilesFromData(value, files));

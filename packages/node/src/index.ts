@@ -21,7 +21,7 @@ export type Configuration = Pick<ConfigurationCore, "cacheExpirationTime"> & {
 
 export default function easyDBNode(conf: Partial<Configuration>) {
     const configuration: Configuration = {
-        cacheExpirationTime: 1000,
+        cacheExpirationTime: null,
         fileFolder: "easy-db-files",
         fileUrl: "/easy-db-files",
         folderDB: "easy-db",

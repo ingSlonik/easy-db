@@ -8,7 +8,10 @@ export type Row<T = any> = Record<string, T>;
 export type Data<T extends Row = Row<any>> = Record<string, T>;
 
 export interface Backend {
-    // null is not use cache and number is in [ms]
+    /**
+     * Cache data for load and save.
+     * If set, it is necessary to have only one process running with easy-db to function properly!
+     */
     cacheExpirationTime?: null | number,
     saveCollection: (name: string, data: Data) => Promise<void>;
     loadCollection: (name: string) => Promise<null | Data>;
@@ -192,10 +195,11 @@ export { getFile as file } from "./file";
 
 export default (backend: Backend): API => {
     const { cacheExpirationTime, ...intersection } = backend;
-
     const backendInternal: BackendInternal = {
         ...intersection,
-        cache: typeof cacheExpirationTime === "number" ? new Cache(cacheExpirationTime, backend.loadCollection, backend.saveCollection) : null,
+        cache: typeof cacheExpirationTime === "number" && cacheExpirationTime > 0 ?
+            new Cache(cacheExpirationTime, backend.loadCollection, backend.saveCollection) :
+            null,
         queue: null,
     };
 

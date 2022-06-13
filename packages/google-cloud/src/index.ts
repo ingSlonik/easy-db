@@ -14,23 +14,19 @@ export type Configuration = Pick<NodeConfiguration, "cacheExpirationTime"> & {
     bucketNameBackup?: string,
     projectId?: string,
     keyFilename?: string,
-    /** Write file once per [ms] */
-    distanceWriteFileTime?: number,
     backup?: Backup,
 };
 
 export default function easyDBGoogleCloud(configuration: Configuration) {
     const {
         bucketName, bucketNameFiles, bucketNameBackup, keyFilename, projectId,
-        cacheExpirationTime, backup, distanceWriteFileTime
+        cacheExpirationTime, backup
     } = configuration;
 
     const storage = new Storage({ keyFilename, projectId });
     const bucketCollection = storage.bucket(bucketName);
     const bucketFiles = bucketNameFiles ? storage.bucket(bucketNameFiles) : null;
     const bucketBackup = bucketNameBackup ? storage.bucket(bucketNameBackup) : null;
-
-    const distanceWriteFile = distanceWriteFileTime ? distance(distanceWriteFileTime) : writeFile;
 
     function getBucket(type: FileType): Bucket {
         switch (type) {
@@ -52,8 +48,7 @@ export default function easyDBGoogleCloud(configuration: Configuration) {
 
     return easyDBNodeCore({
         saveFiles: typeof bucketNameFiles === "string",
-        // cacheExpirationTime shouldn't be smaller than distanceWriteFileTime
-        cacheExpirationTime: (distanceWriteFileTime || 0) > (cacheExpirationTime || 0) ? (distanceWriteFileTime || null) : cacheExpirationTime,
+        cacheExpirationTime,
         backup: bucketNameBackup ? (backup || true) : false,
         async getFileNames(type) {
             const bucket = getBucket(type);
@@ -76,7 +71,7 @@ export default function easyDBGoogleCloud(configuration: Configuration) {
                     if (e instanceof Error) {
                         console.error(e);
                     } else {
-                        console.error(JSON.stringify(e));    
+                        console.error(JSON.stringify(e));
                     }
                     return false;
                 }
@@ -93,14 +88,14 @@ export default function easyDBGoogleCloud(configuration: Configuration) {
             const file = bucket.file(name);
 
             const { ext } = parse(name);
-            await distanceWriteFile(file, fileContent, getType(ext));
+            await writeFile(file, fileContent, getType(ext));
             return file.publicUrl();
 
         },
         async unlinkFile(type, name) {
-                const bucket = getBucket(type);
-                const file = bucket.file(name);
-                await file.delete();
+            const bucket = getBucket(type);
+            const file = bucket.file(name);
+            await file.delete();
         },
     });
 }
@@ -128,57 +123,4 @@ function readFile(file: File): Promise<Buffer> {
             .on("end", () => resolve(Buffer.concat(buffers)))
             .read();
     });
-}
-
-function distance(delay: number): typeof writeFile {
-
-    const fileQueues: {
-        [fileName: string]: {
-            queue: null | Promise<any>,
-            lastRef: () => Promise<void>,
-        },
-    } = {};
-
-    // Save data in queue with SIGINT
-    process.on("SIGINT", async () => {
-        await Promise.all(Object.keys(fileQueues)
-            .filter(fileName => fileQueues[fileName].queue !== null)
-            .map(fileName => {
-                fileQueues[fileName].queue = null;
-                return fileQueues[fileName].lastRef()
-            })
-        );
-
-        process.exit();
-    });
-
-    const distanceWriteFile: typeof writeFile = async (file, ...arg) => {
-        const lastRef = async () => await distanceWriteFile(file, ...arg);
-
-        if (!(file.name in fileQueues) || fileQueues[file.name].queue === null) {
-            const queue = addToQueue<void>(null, () => new Promise(async resolve => {
-                await writeFile(file, ...arg);
-                setTimeout(() => {
-                    fileQueues[file.name].queue = null;
-                    resolve();
-                }, delay);
-            }));
-
-            fileQueues[file.name] = { queue, lastRef };
-        } else {
-            fileQueues[file.name].lastRef = lastRef;
-            (async () => {
-                await fileQueues[file.name].queue;
-
-                if (fileQueues[file.name].lastRef === lastRef) {
-                    // this is last called function
-                    await distanceWriteFile(file, ...arg);
-                } else {
-                    // there is newer content
-                }
-            })();
-        }
-    };
-
-    return distanceWriteFile;
 }

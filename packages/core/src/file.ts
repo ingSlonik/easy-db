@@ -90,7 +90,6 @@ function isFileRow(row: any): row is FileRow {
 
 export function getFile(url: string): File {
     return {
-        id: null,
         type: "EASY_DB_FILE",
         url,
     };
@@ -169,7 +168,6 @@ export async function replaceFileData(
             isFileDataRefChanged = isFileDataRefChanged || isChanged;
         }
     } else if (typeof dataRef === "object" && dataRef !== null) {
-        const newRow = {};
         for (const key in dataRef) {
             const isChanged = await replaceFileData(dataRef[key], collection, rowId, fileDataRef, saveFile);
             isFileDataRefChanged = isFileDataRefChanged || isChanged;
@@ -207,10 +205,11 @@ export async function removeUpdatedFiles(
     const newFilesIds = newFiles.map(f => f.id);
 
     for (const oldFile of oldFiles) {
-        const { id, url } = oldFile;
-        if (newFilesIds.indexOf(id) < 0) {
-            // these files was in ond row and is not in new row
-            if (isSavedFile(oldFile)) {
+        // these files was in ond row and is not in new row
+        if (isSavedFile(oldFile)) {
+            const { id, url } = oldFile;
+
+            if (newFilesIds.indexOf(id) < 0) {
                 // when was saved on this server
                 const fileRow = fileDataRef[id];
                 if (isFileRow(fileRow)) {

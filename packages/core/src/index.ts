@@ -4,8 +4,8 @@ import { getRandomId } from "./common";
 import { getFile, replaceFileData, removeUpdatedFiles, File, FileData, FILE_COLLECTION } from "./file";
 
 export type Id = string;
-export type Row<T = any> = { [key: string]: T };
-export type Data<T extends Row = Row<any>> = { [id: string]: T };
+export type Row<T = any> = Record<string, T>;
+export type Data<T extends Row = Row<any>> = Record<string, T>;
 
 export interface Backend {
     // null is not use cache and number is in [ms]
@@ -19,7 +19,7 @@ export interface Backend {
 interface BackendInternal {
     // queue for locking reading and writing configuration and data in the same time
     queue: null | Promise<any>,
-    cache: null | Cache<Data>,
+    cache: null | Cache,
     saveCollection: (name: string, data: Data) => Promise<void>;
     loadCollection: (name: string) => Promise<null | Data>;
     saveFile?: (base46: string) => Promise<string>;
@@ -53,7 +53,7 @@ export interface Remove {
 
 async function getData(backend: BackendInternal, collectionName: string): Promise<Data> {
     const data = backend.cache ?
-        await backend.cache.get(backend.loadCollection, collectionName) :
+        await backend.cache.get(collectionName) :
         await backend.loadCollection(collectionName);
 
     if (data === null) {
@@ -64,9 +64,11 @@ async function getData(backend: BackendInternal, collectionName: string): Promis
 }
 
 async function setData(backend: BackendInternal, collectionName: string, data: Data): Promise<void> {
-    await backend.saveCollection(collectionName, data);
-    if (backend.cache)
-        backend.cache.set(collectionName, data);
+    if (backend.cache) {
+        await backend.cache.set(collectionName, data);
+    } else {
+        await backend.saveCollection(collectionName, data);
+    }
 }
 
 // API
@@ -193,7 +195,7 @@ export default (backend: Backend): API => {
 
     const backendInternal: BackendInternal = {
         ...intersection,
-        cache: cacheExpirationTime === null ? null : new Cache<Data>(cacheExpirationTime),
+        cache: typeof cacheExpirationTime === "number" ? new Cache(cacheExpirationTime, backend.loadCollection, backend.saveCollection) : null,
         queue: null,
     };
 

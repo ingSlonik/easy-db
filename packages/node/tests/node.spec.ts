@@ -9,6 +9,12 @@ const { writeFile, readdir, unlink } = promises;
 
 const DUMMY_FILE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
 
+async function timeout(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
+}
+
 const { insert, select, update, remove, file } = easyDB({
     fileFolder: "./files",
     fileUrl: "./files",
@@ -18,6 +24,9 @@ const { insert, select, update, remove, file } = easyDB({
         keepName: name => name === "keep",
     },
 });
+
+const cacheExpirationTime = 500;
+const { insert: insertCache, select: selectCache } = easyDB({ cacheExpirationTime, backup: false });
 
 describe('Easy DB', () => {
     it('db API', () => {
@@ -189,5 +198,25 @@ describe('Easy DB', () => {
         date.setDate(date.getDate() - 59);
         date.setDate(2);
         assert.isFalse(keepName(getDayDate(date)), "Not keep backup before 2 months 2th day");
+    });
+
+    it('cache data for load', async () => {
+        const id = await insertCache("test", { text: "Cached" });
+        await update("test", id, { text: "Changed" });
+        const row = await selectCache("test", id);
+        assert.equal(row?.text, "Cached", "Cache was not used.");
+        await timeout(cacheExpirationTime);
+        await update("test", id, { text: "Changed" });
+        const rowAfter = await selectCache("test", id);
+        assert.equal(rowAfter?.text, "Changed", "Cache was not cleared.");
+    });
+
+    it('cache data for save', async () => {
+        const id = await insertCache("test", { text: "Cached" });
+        const row = await select("test", id);
+        assert.equal(row, null, "Collection was saved before cacheExpirationTime.");
+        await timeout(cacheExpirationTime);
+        const rowAfter = await select("test", id);
+        assert.equal(rowAfter?.text, "Cached", "Collection was not saved after cacheExpirationTime.");
     });
 });

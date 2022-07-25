@@ -97,6 +97,8 @@ export default class Cache {
                 if (cachedData) {
                     this.removeKeyCache(key);
                     await this.saveData(key, cachedData);
+                    // cachedData are current set them for next period
+                    this.setCachedData(key, cachedData, false);
                 } else {
                     throw new Error("Unreachable.");
                 }

@@ -205,7 +205,7 @@ describe('Easy DB', () => {
         await update("test", id, { text: "Changed" });
         const row = await selectCache("test", id);
         assert.equal(row?.text, "Cached", "Cache was not used.");
-        await timeout(cacheExpirationTime);
+        await timeout(cacheExpirationTime * 2);
         await update("test", id, { text: "Changed" });
         const rowAfter = await selectCache("test", id);
         assert.equal(rowAfter?.text, "Changed", "Cache was not cleared.");
@@ -215,7 +215,7 @@ describe('Easy DB', () => {
         const id = await insertCache("test", { text: "Cached" });
         const row = await select("test", id);
         assert.equal(row, null, "Collection was saved before cacheExpirationTime.");
-        await timeout(cacheExpirationTime);
+        await timeout(cacheExpirationTime * 2);
         const rowAfter = await select("test", id);
         assert.equal(rowAfter?.text, "Cached", "Collection was not saved after cacheExpirationTime.");
     });

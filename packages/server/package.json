@@ -1,52 +1,52 @@
 {
-    "name": "easy-db-server",
-    "version": "2.4.0",
-    "description": "Lite&easy database for Node.js.",
-    "main": "./lib/index.js",
-    "types": "./lib/index.d.ts",
-    "scripts": {
-        "build": "tsc",
-        "start": "node -r ts-node/register ./src/cli.ts",
-        "test": "mocha -r ts-node/register tests/**/*.spec.ts",
-        "prepublish": "npm run build"
-    },
-    "bin": {
-        "easy-db-server": "./lib/cli.js"
-    },
-    "license": "MIT",
-    "devDependencies": {
-        "@types/chai": "^4.2.15",
-        "@types/cors": "^2.8.10",
-        "@types/express": "^4.17.11",
-        "@types/mocha": "^8.2.1",
-        "@types/node": "^14.14.35",
-        "chai": "^4.3.4",
-        "chai-http": "^4.3.0",
-        "mocha": "^8.3.2",
-        "ts-node": "^9.1.1",
-        "typescript": "^4.2.3"
-    },
-    "dependencies": {
-        "cors": "^2.8.5",
-        "easy-db-node": "^2.4.0",
-        "express": "^4.17.1",
-        "mingo": "^4.2.0",
-        "yargs": "^16.2.0"
-    },
-    "keywords": [
-        "easy&lite",
-        "node",
-        "database",
-        "json",
-        "files",
-        "manually rewrite"
-    ],
-    "author": "Filip Paulů <ing.fenix@seznam.cz>",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/ingSlonik/easy-db.git"
-    },
-    "bugs": {
-        "url": "https://github.com/ingSlonik/easy-db/issues"
-    }
+  "name": "easy-db-server",
+  "version": "2.4.0",
+  "description": "Lite&easy database for Node.js.",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node -r ts-node/register ./src/cli.ts",
+    "test": "EASY_DB_TOKEN=secretToken mocha --import=tsx tests/**/*.spec.ts",
+    "prepublish": "npm run build"
+  },
+  "bin": {
+    "easy-db-server": "./lib/cli.js"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/chai": "^4.3.16",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.14.6",
+    "chai": "^5.1.1",
+    "chai-http": "^5.0.0",
+    "mocha": "^10.4.0",
+    "tsx": "^4.15.6",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "easy-db-node": "^2.4.0",
+    "express": "^4.19.2",
+    "mingo": "^6.4.15",
+    "yargs": "^17.7.2"
+  },
+  "keywords": [
+    "easy&lite",
+    "node",
+    "database",
+    "json",
+    "files",
+    "manually rewrite"
+  ],
+  "author": "Filip Paulů <ing.fenix@seznam.cz>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ingSlonik/easy-db.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ingSlonik/easy-db/issues"
+  }
 }

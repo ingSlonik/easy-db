@@ -6,22 +6,22 @@
     "types": "./lib/index.d.ts",
     "scripts": {
         "build": "tsc",
-        "test": "mocha -r ts-node/register tests/**/*.spec.ts --timeout 10000",
+        "test": "mocha --import=tsx tests/**/*.spec.ts --timeout 10000",
         "prepublish": "npm run build"
     },
     "license": "MIT",
     "devDependencies": {
-        "@types/chai": "^4.2.15",
-        "@types/chai-spies": "^1.0.3",
-        "@types/mime-db": "^1.43.1",
-        "@types/mocha": "^8.2.1",
-        "@types/node": "^14.14.35",
-        "chai": "^4.3.4",
-        "chai-spies": "^1.0.0",
+        "@types/chai": "^4.3.16",
+        "@types/chai-spies": "^1.0.6",
+        "@types/mime-db": "^1.43.5",
+        "@types/mocha": "^10.0.6",
+        "@types/node": "^20.14.6",
+        "chai": "^5.1.1",
+        "chai-spies": "^1.1.0",
         "cross-env": "^7.0.3",
-        "mocha": "^8.3.2",
-        "ts-node": "^9.1.1",
-        "typescript": "^4.2.3"
+        "mocha": "^10.4.0",
+        "tsx": "^4.15.6",
+        "typescript": "^5.4.5"
     },
     "dependencies": {
         "@google-cloud/storage": "^5.18.2",

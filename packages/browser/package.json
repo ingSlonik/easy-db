@@ -1,39 +1,39 @@
 {
-    "name": "easy-db-browser",
-    "version": "2.4.0",
-    "description": "Lite&easy database for browsers based on localStorage.",
-    "main": "./lib/index.js",
-    "types": "./lib/index.d.ts",
-    "scripts": {
-        "build": "tsc",
-        "test": "mocha -r ts-node/register tests/**/*.spec.ts",
-        "prepublish": "npm run build"
-    },
-    "license": "MIT",
-    "devDependencies": {
-        "@types/chai": "^4.2.15",
-        "@types/mocha": "^8.2.1",
-        "chai": "^4.3.4",
-        "mocha": "^8.3.2",
-        "ts-node": "^9.1.1",
-        "typescript": "^4.2.3"
-    },
-    "dependencies": {
-        "easy-db-core": "^2.4.0"
-    },
-    "keywords": [
-        "easy&lite",
-        "browser",
-        "database",
-        "localStorage",
-        "TypeScript"
-    ],
-    "author": "Filip Paulů <ing.fenix@seznam.cz>",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/ingSlonik/easy-db.git"
-    },
-    "bugs": {
-        "url": "https://github.com/ingSlonik/easy-db/issues"
-    }
+  "name": "easy-db-browser",
+  "version": "2.4.0",
+  "description": "Lite&easy database for browsers based on localStorage.",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "mocha --import=tsx tests/**/*.spec.ts",
+    "prepublish": "npm run build"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/chai": "^4.3.16",
+    "@types/mocha": "^10.0.6",
+    "chai": "^5.1.1",
+    "mocha": "^10.4.0",
+    "tsx": "^4.15.6",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "easy-db-core": "^2.4.0"
+  },
+  "keywords": [
+    "easy&lite",
+    "browser",
+    "database",
+    "localStorage",
+    "TypeScript"
+  ],
+  "author": "Filip Paulů <ing.fenix@seznam.cz>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ingSlonik/easy-db.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ingSlonik/easy-db/issues"
+  }
 }

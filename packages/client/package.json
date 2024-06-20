@@ -6,20 +6,18 @@
     "types": "./lib/index.d.ts",
     "scripts": {
         "build": "tsc",
-        "test": "mocha -r ts-node/register tests/**/*.spec.ts",
+        "test": "mocha --import=tsx tests/**/*.spec.ts",
         "prepublish": "npm run build"
     },
     "license": "MIT",
     "devDependencies": {
-        "@types/chai": "^4.2.15",
-        "@types/mocha": "^8.2.1",
-        "@types/node-fetch": "^2.5.8",
-        "chai": "^4.3.4",
+        "@types/chai": "^4.3.16",
+        "@types/mocha": "^10.0.6",
+        "chai": "^5.1.1",
         "easy-db-server": "^2.4.0",
-        "mocha": "^8.3.2",
-        "node-fetch": "^2.6.1",
-        "ts-node": "^9.1.1",
-        "typescript": "^4.2.3"
+        "mocha": "^10.4.0",
+        "tsx": "^4.15.6",
+        "typescript": "^5.4.5"
     },
     "keywords": [
         "easy&lite",

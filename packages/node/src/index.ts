@@ -4,8 +4,10 @@ const { mkdir, unlink, readdir } = promises;
 
 import easyDBNodeCore, { FileType, Backup, Configuration as ConfigurationCore } from "./core";
 
+import { DBTypes } from "easy-db-core";
+
 export * from "easy-db-core";
-export { default as easyDBNodeCore, defaultBackupConfiguration, getDayDate, getExtension, getType, Backup, FileType } from "./core";
+export { default as easyDBNodeCore, defaultBackupConfiguration, getDayDate, getExtension, getType, NodeAPI, Backup, FileType } from "./core";
 
 export type Configuration = Pick<ConfigurationCore, "cacheExpirationTime"> & {
     fileFolder: null | string,
@@ -19,7 +21,7 @@ export type Configuration = Pick<ConfigurationCore, "cacheExpirationTime"> & {
     });
 };
 
-export default function easyDBNode(conf: Partial<Configuration>) {
+export default function easyDBNode<T extends DBTypes>(conf: Partial<Configuration>) {
     const configuration: Configuration = {
         cacheExpirationTime: null,
         fileFolder: "easy-db-files",
@@ -50,7 +52,7 @@ export default function easyDBNode(conf: Partial<Configuration>) {
         }
     }
 
-    return easyDBNodeCore({
+    return easyDBNodeCore<T>({
         saveFiles: fileFolder !== null,
         cacheExpirationTime,
         backup,
@@ -59,6 +61,9 @@ export default function easyDBNode(conf: Partial<Configuration>) {
                 console.warn("File name is not specified.");
                 return false;
             }
+            if (type === "file")
+                name = basename(name);
+
             return existsSync(resolveFolder(type, name));
         },
         async getFileNames(type) {
@@ -104,7 +109,9 @@ async function readFile(path: string): Promise<Buffer> {
         const stream = createReadStream(path, { flags: "r" });
         stream.on("error", err => reject(err));
         stream.on("data", chunk => buffers.push(chunk as Buffer));
-        stream.on("end", () => resolve(Buffer.concat(buffers)));
+        stream.on("end", () => {
+            resolve(Buffer.concat(buffers));
+        });
     });
 }
 async function writeFile(path: string, file: Buffer): Promise<void> {
@@ -112,7 +119,9 @@ async function writeFile(path: string, file: Buffer): Promise<void> {
         const stream = createWriteStream(path, { flags: "w" });
         stream.on("error", err => reject(err));
         stream.write(file);
-        stream.end(resolve);
+        stream.end(() => {
+            resolve();
+        });
     });
 }
 

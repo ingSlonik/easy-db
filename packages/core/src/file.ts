@@ -35,7 +35,6 @@ type SavedFile = {
 
 type Data = any;
 type FileRow = {
-    id: string,
     url: string,
     use: Array<{
         collection: string,
@@ -78,7 +77,6 @@ function isFileRow(row: any): row is FileRow {
         row
         && row !== null
         && typeof row === "object"
-        && typeof row.id === "string"
         && typeof row.url === "string"
         && Array.isArray(row.use)
     ) {
@@ -137,7 +135,6 @@ export async function replaceFileData(
                 // for situation that FileRow was lost
                 isFileDataRefChanged = true;
                 fileDataRef[dataRef.id] = {
-                    id: dataRef.id,
                     url: dataRef.url,
                     use: [{ collection, rowId }],
                 };
@@ -157,7 +154,7 @@ export async function replaceFileData(
                 dataRef.url = url;
 
                 isFileDataRefChanged = true;
-                fileDataRef[id] = { id, url, use };
+                fileDataRef[id] = { url, use };
             } else {
                 // the url is defined by user
             }
@@ -198,38 +195,30 @@ export async function removeUpdatedFiles(
 ): Promise<boolean> {
     let isFileDataRefChanged = false;
 
-    const newFiles = getFilesFromData(newData);
-    const oldFiles = getFilesFromData(oldData);
+    const newFiles = getSavedFilesFromData(newData);
+    const oldFiles = getSavedFilesFromData(oldData);
 
-    // now files are already in DB, not empty id
-    const newFilesIds = newFiles.map(f => f.id);
+    for (const [id, oldFile] of Object.entries(oldFiles)) {
+        if (!(id in newFiles)) {
+            // when was saved on this server
+            const fileRow = fileDataRef[id];
+            if (isFileRow(fileRow)) {
+                // remove this collection/rowId from FileRow
+                const use = fileRow.use.filter(use => !(use.collection === collection && use.rowId === rowId));
 
-    for (const oldFile of oldFiles) {
-        // these files was in ond row and is not in new row
-        if (isSavedFile(oldFile)) {
-            const { id, url } = oldFile;
-
-            if (newFilesIds.indexOf(id) < 0) {
-                // when was saved on this server
-                const fileRow = fileDataRef[id];
-                if (isFileRow(fileRow)) {
-                    // remove this collection/worId from FileRow
-                    const use = fileRow.use.filter(use => use.collection !== collection && use.rowId !== rowId);
-
-                    if (use.length === 0) {
-                        // remove file only when is not used
-                        isFileDataRefChanged = true;
-                        delete fileDataRef[id];
-                        removeFile(url);
-                    } else {
-                        // if file is used in other collection/worId keep file
-                        isFileDataRefChanged = true;
-                        fileDataRef[id] = { ...fileRow, use };
-                    }
+                if (use.length === 0) {
+                    // remove file only when is not used
+                    isFileDataRefChanged = true;
+                    delete fileDataRef[id];
+                    removeFile(oldFile.url);
                 } else {
-                    // remove file without FileRow
-                    removeFile(url);
+                    // if file is used in other collection/worId keep file
+                    isFileDataRefChanged = true;
+                    fileDataRef[id] = { ...fileRow, use };
                 }
+            } else {
+                // remove file without FileRow
+                removeFile(oldFile.url);
             }
         }
     }
@@ -237,18 +226,24 @@ export async function removeUpdatedFiles(
     return isFileDataRefChanged;
 }
 
-function getFilesFromData(data: Data, files: File[] = []): File[] {
-    if (isFile(data)) {
-        if (files.map(f => f.id).indexOf(data.id) < 0) {
-            files = [...files, data];
+/**
+ * Get all saved files from Data
+ * @param data 
+ * @param files (optional) object is not immutable!
+ * @returns 
+ */
+function getSavedFilesFromData(data: Data, filesRef: Record<string, File> = {}): Record<string, File> {
+    if (isFile(data) && isSavedFile(data)) {
+        if (!(data.id in filesRef)) {
+            filesRef[data.id] = data;
         }
     } else if (Array.isArray(data)) {
-        data.forEach(value => files = getFilesFromData(value, files));
+        data.forEach(value => getSavedFilesFromData(value, filesRef));
     } else if (typeof data === "object" && data !== null) {
         for (const key in data) {
-            files = getFilesFromData(data[key], files);
+            getSavedFilesFromData(data[key], filesRef);
         }
     }
 
-    return files;
+    return filesRef;
 }

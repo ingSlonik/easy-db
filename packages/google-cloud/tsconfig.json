@@ -6,7 +6,11 @@
         "declaration": true,
         "sourceMap": true,
         "esModuleInterop": true,
-        "strictNullChecks": true
+        "strictNullChecks": true,
+        "types": [
+            "node",
+            "mocha"
+        ]
     },
     "include": [
         "src/**/*.ts"

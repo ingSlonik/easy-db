@@ -2,7 +2,9 @@ import { parse } from "path";
 
 import { Storage, File, Bucket } from "@google-cloud/storage";
 
-import { easyDBNodeCore, getType, addToQueue, Backup, Configuration as NodeConfiguration, FileType } from "easy-db-node";
+import { easyDBNodeCore, getType, Backup, Configuration as NodeConfiguration, FileType, DBTypes } from "easy-db-node";
+
+export { file, DBTypes, File } from "easy-db-node";
 
 export type Configuration = Pick<NodeConfiguration, "cacheExpirationTime"> & {
     bucketName: string,
@@ -17,7 +19,7 @@ export type Configuration = Pick<NodeConfiguration, "cacheExpirationTime"> & {
     backup?: Backup,
 };
 
-export default function easyDBGoogleCloud(configuration: Configuration) {
+export default function easyDBGoogleCloud<T extends DBTypes>(configuration: Configuration) {
     const {
         bucketName, bucketNameFiles, bucketNameBackup, keyFilename, projectId,
         cacheExpirationTime, backup
@@ -46,7 +48,7 @@ export default function easyDBGoogleCloud(configuration: Configuration) {
         }
     }
 
-    return easyDBNodeCore({
+    return easyDBNodeCore<T>({
         saveFiles: typeof bucketNameFiles === "string",
         cacheExpirationTime,
         backup: bucketNameBackup ? (backup || true) : false,

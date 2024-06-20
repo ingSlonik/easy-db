@@ -2,9 +2,21 @@ import { resolve } from "path";
 
 import { assert } from "chai";
 
-import easyDB from "../src/index";
+import easyDB, { File } from "../src/index";
 
-const { insert, select, update, remove, file } = easyDB({
+type DB = {
+    test: {
+        name?: string,
+        myFirst?: number,
+        second?: number,
+        photo?: File,
+        picture?: File,
+        text?: File,
+        crossLimitTest?: number,
+    }
+};
+
+const { insert, select, update, remove, file } = easyDB<DB>({
     keyFilename: resolve(__dirname, "keyFile.json"),
     bucketName: "easy-db-test",
     bucketNameFiles: "easy-db-files",
@@ -36,14 +48,14 @@ describe("Easy DB", () => {
     it("select", async () => {
         const id = await insert("test", { myFirst: 2 });
         const data = await select("test", id);
-        assert.deepEqual(data, { myFirst: 2 });
+        assert.deepEqual(data, { _id: id, myFirst: 2 });
     });
 
     it("update", async () => {
         const id = await insert("test", { myFirst: 1 });
         await update("test", id, { myFirst: 25, second: 1 });
         const data = await select("test", id);
-        assert.deepEqual(data, { myFirst: 25, second: 1 });
+        assert.deepEqual(data, { _id: id, myFirst: 25, second: 1 });
     });
 
     it("remove", async () => {
@@ -59,8 +71,8 @@ describe("Easy DB", () => {
             photo: file(DUMMY_FILE_TXT),
         });
         const data = await select("test", id);
-        assert.isString(data?.photo.url);
-        assert.notEqual(data?.photo.url, DUMMY_FILE_TXT);
+        assert.isString(data?.photo?.url);
+        assert.notEqual(data?.photo?.url, DUMMY_FILE_TXT);
         await remove("test", id);
     });
 
@@ -70,8 +82,8 @@ describe("Easy DB", () => {
             photo: file(DUMMY_FILE_PNG),
         });
         const data = await select("test", id);
-        assert.isString(data?.photo.url);
-        assert.notEqual(data?.photo.url, DUMMY_FILE_PNG);
+        assert.isString(data?.photo?.url);
+        assert.notEqual(data?.photo?.url, DUMMY_FILE_PNG);
         await remove("test", id);
     });
 
@@ -82,10 +94,10 @@ describe("Easy DB", () => {
             text: file(DUMMY_FILE_TXT),
         });
         const data = await select("test", id);
-        assert.isString(data?.picture.url);
-        assert.notEqual(data?.picture.url, DUMMY_FILE_TXT, "First file is not converted.");
-        assert.isString(data?.text.url);
-        assert.notEqual(data?.text.url, DUMMY_FILE_PNG, "Second file is not converted.");
+        assert.isString(data?.picture?.url);
+        assert.notEqual(data?.picture?.url, DUMMY_FILE_TXT, "First file is not converted.");
+        assert.isString(data?.text?.url);
+        assert.notEqual(data?.text?.url, DUMMY_FILE_PNG, "Second file is not converted.");
         await remove("test", id);
     });
 
@@ -96,12 +108,13 @@ describe("Easy DB", () => {
         });
         await update("test", id, {
             name: "Example User",
-            photo: "no picture",
+            photo: undefined,
         });
         const data = await select("test", id);
         assert.deepEqual(data, {
+            _id: id,
             name: "Example User",
-            photo: "no picture",
+            photo: undefined,
         });
     });
 

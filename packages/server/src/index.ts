@@ -1,8 +1,9 @@
+import { parse } from "path";
 import express, { Express } from "express";
 import cors from "cors";
 
 import { Query } from "mingo";
-import easyDBNode, { API, Configuration as ConfigurationNode } from "easy-db-node";
+import easyDBNode, { DBTypes, NodeAPI, Configuration as ConfigurationNode } from "easy-db-node";
 
 export { default as express } from "express";
 
@@ -20,7 +21,7 @@ export type Configuration = {
     token: null | string,
 } & Partial<ConfigurationNode>;
 
-export function useEasyDB(app: Express, configuration: Partial<Configuration>, easyDB?: API) {
+export function useEasyDB<T extends DBTypes>(app: Express, configuration: Partial<Configuration>, easyDB?: NodeAPI<T>) {
     const conf: Configuration = {
         verbose: 1,
         cacheExpirationTime: 15000,
@@ -30,7 +31,7 @@ export function useEasyDB(app: Express, configuration: Partial<Configuration>, e
         ...configuration,
     };
 
-    const { select, insert, update, remove } = easyDB ? easyDB : easyDBNode(conf);
+    const { select, selectArray, insert, update, remove, getFileNames } = easyDB ? easyDB : easyDBNode<T>(conf);
 
     const { verbose } = conf;
 
@@ -38,7 +39,7 @@ export function useEasyDB(app: Express, configuration: Partial<Configuration>, e
 
     if (conf.cors) {
         app.use(cors({
-            methods: [ "GET", "PUT", "POST", "PATCH", "POST", "DELETE", "OPTIONS" ],
+            methods: ["GET", "PUT", "POST", "PATCH", "POST", "DELETE", "OPTIONS"],
             allowedHeaders: [
                 "Content-Type",
                 "Authorization",
@@ -50,7 +51,7 @@ export function useEasyDB(app: Express, configuration: Partial<Configuration>, e
     if (conf.token !== null) {
         app.use((req, res, next) => {
             const tokenFromHeader = req.headers["easy-db-token"];
-    
+
             if (
                 req.method === "OPTIONS" ||
                 !req.path.startsWith("/api") ||
@@ -64,12 +65,18 @@ export function useEasyDB(app: Express, configuration: Partial<Configuration>, e
         });
     }
 
+    app.get("/api/easy-db-collections", async (req, res) => {
+        const files = await getFileNames("collection");
+        const collections = files.map(parse).filter(f => f.ext === ".json").map(f => f.name);
+
+        res.type("json");
+        res.send(JSON.stringify(collections));
+    });
+
     app.get("/api/:collection", async (req, res) => {
         const { collection } = req.params;
 
         verbose && console.log(new Date(), "GET", `/api/${collection}`);
-
-        const data = await select(collection);
 
         let query = null;
         try {
@@ -118,16 +125,16 @@ export function useEasyDB(app: Express, configuration: Partial<Configuration>, e
 
         if (query !== null || projection !== null || sort !== null || skip !== null || limit !== null) {
 
-            const dataForQuery = Object.keys(data).map(_id => ({ ...data[_id], _id }));
-    
-            const cursor = new Query(query || {}).find(dataForQuery, projection);
-    
+            const dataForQuery = await selectArray(collection);
+
+            const cursor = new Query(query || {}).find<{ _id: string }>(dataForQuery, projection);
+
             if (sort !== null)
                 cursor.sort(sort);
-            
+
             if (skip !== null)
                 cursor.skip(skip);
-            
+
             if (limit !== null)
                 cursor.limit(limit);
 
@@ -136,7 +143,7 @@ export function useEasyDB(app: Express, configuration: Partial<Configuration>, e
             if (req.query["easy-db-client"] === "true") {
                 const easyDbData = {};
                 filteredData.forEach(({ _id, ...row }) => easyDbData[_id] = row);
-    
+
                 res.type("json");
                 res.send(easyDbData);
             } else {
@@ -145,17 +152,17 @@ export function useEasyDB(app: Express, configuration: Partial<Configuration>, e
             }
         } else {
             if (req.query["easy-db-client"] === "true") {
+                const data = await select(collection);
                 res.type("json");
                 res.send(data);
             } else {
-                const rows = Object.keys(data).map(_id => ({ ...data[_id], _id }));
-    
+                const rows = await selectArray(collection);
                 res.type("json");
                 res.send(rows);
             }
         }
     });
-    
+
     app.get("/api/:collection/:id", async (req, res) => {
         const { collection, id } = req.params;
 
@@ -166,7 +173,7 @@ export function useEasyDB(app: Express, configuration: Partial<Configuration>, e
         res.type("json");
         res.send(row !== null ? row : JSON.stringify(null));
     });
-    
+
     app.post("/api/:collection", async (req, res) => {
         const { collection } = req.params;
 
@@ -177,7 +184,7 @@ export function useEasyDB(app: Express, configuration: Partial<Configuration>, e
         res.type("json");
         res.send(JSON.stringify(id));
     });
-    
+
     app.put("/api/:collection/:id", async (req, res) => {
         const { collection, id } = req.params;
 
@@ -188,10 +195,10 @@ export function useEasyDB(app: Express, configuration: Partial<Configuration>, e
         res.type("json");
         res.send(JSON.stringify(null));
     });
-    
+
     app.patch("/api/:collection/:id", async (req, res) => {
         const { collection, id } = req.params;
-        
+
         verbose && console.log(new Date(), "PATCH", `/api/${collection}/${id}`);
 
         const row = await select(collection, id);
@@ -200,20 +207,20 @@ export function useEasyDB(app: Express, configuration: Partial<Configuration>, e
         res.type("json");
         res.send(JSON.stringify(null));
     });
-    
+
     app.delete("/api/:collection/:id", async (req, res) => {
         const { collection, id } = req.params;
 
         verbose && console.log(new Date(), "DELETE", `/api/${collection}/${id}`);
 
         await remove(collection, id);
-    
+
         res.type("json");
         res.send(JSON.stringify(null));
     });
 
     if (conf.fileFolder) {
-        app.use("/easy-db-files", express.static(conf.fileFolder));    
+        app.use("/easy-db-files", express.static(conf.fileFolder));
     }
 }
 

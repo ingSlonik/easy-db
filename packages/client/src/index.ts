@@ -39,6 +39,7 @@ export interface Remove<T extends DBTypes> {
 export type DBTypes = { [collection: string]: Row };
 export interface API<T extends DBTypes> {
     file: (base64: string) => File;
+    getCollections: () => Promise<string[]>;
     insert: Insert<T>;
     select: Select<T>;
     selectArray: SelectArray<T>;
@@ -57,6 +58,21 @@ export default function easyDBClient<T extends DBTypes>(configuration: Partial<C
         server: "http://localhost:80/",
         token: null,
         ...configuration,
+    };
+
+    const getCollections = async () => {
+        const url = `${conf.server}api/easy-db-collections`;
+        const response = await fetch(url, {
+            method: "GET",
+            headers: getHeaders(conf),
+        });
+        const collections = await response.json();
+
+        if (Array.isArray(collections)) {
+            return collections;
+        } else {
+            throw new Error("Server response is not an array of collections");
+        }
     };
 
     const insert: Insert<T> = async (collection, row) => {
@@ -150,6 +166,7 @@ export default function easyDBClient<T extends DBTypes>(configuration: Partial<C
 
     return {
         file,
+        getCollections,
         insert,
         select,
         selectArray,

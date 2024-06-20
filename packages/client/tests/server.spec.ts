@@ -28,7 +28,7 @@ type DB = {
     };
 };
 
-const { insert, select, selectArray, update, remove } = easyDB<DB>({ server: "http://localhost:1234/", token: TOKEN });
+const { getCollections, insert, select, selectArray, update, remove } = easyDB<DB>({ server: "http://localhost:1234/", token: TOKEN });
 
 describe('Easy DB client', () => {
 
@@ -59,6 +59,14 @@ describe('Easy DB client', () => {
         assert.isString(id);
         const data = await select("test", id);
         assert.equal(id, data?.id);
+    });
+
+    it('get collections', async () => {
+        const collections = await getCollections();
+        assert.isArray(collections);
+        for (const collection of collections) {
+            assert.isString(collection);
+        }
     });
 
     it('select all', async () => {

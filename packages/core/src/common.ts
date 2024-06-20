@@ -4,16 +4,17 @@ const charactersLength = characters.length;
 export function getRandomId(length: number = 12) {
     let result = '';
     for (let i = 0; i < length; i++) {
-       result += characters.charAt(Math.floor(Math.random() * charactersLength));
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
     }
     return result;
 }
 
-// TODO: add string length after n cycles
-export function getFreeId(data: Record<string, any>): string {
-    let id = getRandomId();
+export function getFreeId(data: Record<string, unknown>, initialLength = 6): string {
+    let id = getRandomId(initialLength);
+    let i = 0;
     while (id in data) {
-        id = getRandomId();
+        // every 21 try increase length about one
+        id = getRandomId(initialLength + Math.floor(i++ / 21));
     }
     return id;
 }

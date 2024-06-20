@@ -18,7 +18,17 @@ useEasyDB(app, {
 
 const server = app.listen(1234, () => console.log(`Easy DB server is running at http://localhost:1234.`));
 
-const { insert, select, update, remove } = easyDB({ server: "http://localhost:1234/", token: TOKEN });
+type DB = {
+    test: {
+        id?: string;
+        myFirst?: number;
+        second?: number;
+        query?: boolean;
+        value?: number;
+    };
+};
+
+const { insert, select, selectArray, update, remove } = easyDB<DB>({ server: "http://localhost:1234/", token: TOKEN });
 
 describe('Easy DB client', () => {
 
@@ -38,17 +48,17 @@ describe('Easy DB client', () => {
         const data = await select("test", id);
         assert.notEqual(data, null);
     });
-    
+
     it('insert', async () => {
         const id = await insert("test", { myFirst: 1 });
         assert.isString(id);
     });
-    
+
     it('insert with callback', async () => {
         const id = await insert("test", id => ({ id, myFirst: 1 }));
         assert.isString(id);
         const data = await select("test", id);
-        assert.equal(id, data.id);
+        assert.equal(id, data?.id);
     });
 
     it('select all', async () => {
@@ -56,18 +66,23 @@ describe('Easy DB client', () => {
         assert.isObject(data);
         assert.isNotArray(data);
     });
+    it('selectArray', async () => {
+        const data = await selectArray("test");
+        assert.isArray(data);
+        assert.hasAnyKeys(data[0], ["_id"]);
+    });
 
     it('select', async () => {
         const id = await insert("test", { myFirst: 2 });
         const data = await select("test", id);
-        assert.deepEqual(data, { myFirst: 2 });
+        assert.deepEqual(data, { _id: id, myFirst: 2 });
     });
 
     it('update', async () => {
         const id = await insert("test", { myFirst: 1 });
         await update("test", id, { myFirst: 25, second: 1 });
         const data = await select("test", id);
-        assert.deepEqual(data, { myFirst: 25, second: 1 });
+        assert.deepEqual(data, { _id: id, myFirst: 25, second: 1 });
     });
 
     it('remove', async () => {
@@ -101,18 +116,18 @@ describe('Easy DB client', () => {
         await insert("test", { query: true, value: Math.random() });
         await insert("test", { query: true, value: Math.random() });
 
-        const data = await select<{ value: number }>("test", { query: { query: true }, sort: { value: - 1 }});
-    
-        let rowBefore = null;
+        const data = await select("test", { query: { query: true }, sort: { value: - 1 } });
+
+        let rowBefore: any = null;
         Object.values(data).forEach(row => {
             if (rowBefore !== null)
                 assert.isTrue(
-                    rowBefore.value >= row.value,
+                    rowBefore.value >= (row?.value || 0),
                     `Result is not sorted (${rowBefore.value} >= ${row.value}).`
                 );
 
             rowBefore = row;
-        });   
+        });
     });
 
     it('select with limit', async () => {
@@ -124,7 +139,7 @@ describe('Easy DB client', () => {
     it('GET all with skip', async () => {
         const dataWithout = await select("test");
         const dataWith = await select("test", { skip: 2 });
-        
+
         assert.strictEqual(Object.keys(dataWith).length, Object.keys(dataWithout).length - 2);
     });
 

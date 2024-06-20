@@ -17,56 +17,63 @@ export type Query = {
     limit?: number,
 };
 
-export interface Insert {
-    (collection: string, row: Row | ((id: Id) => Row)): Promise<string>; 
+export interface Insert<T extends DBTypes> {
+    <C extends keyof T>(collection: C, row: T[C] | ((id: Id) => T[C])): Promise<string>;
 };
-export interface Select {
-    <T extends Row>(collection: string): Promise<Data<T>>;
-    <T extends Row>(collection: string, idOrQuery: Query): Promise<Data<T>>;
-    <T extends Row>(collection: string, idOrQuery: string): Promise<null | T>;
+export interface Select<T extends DBTypes> {
+    <C extends keyof T>(collection: C): Promise<Record<Id, T[C]>>;
+    <C extends keyof T>(collection: C, idOrQuery: Query): Promise<Record<Id, T[C]>>;
+    <C extends keyof T>(collection: C, idOrQuery: string): Promise<null | T[C] & { _id: Id }>;
 };
-export interface Update {
-    (collection: string, id: Id, row: Row): Promise<void>;
+export interface SelectArray<T extends DBTypes> {
+    <C extends keyof T>(collection: C): Promise<Array<T[C] & { _id: Id }>>;
+    <C extends keyof T>(collection: C, query: Query): Promise<Array<T[C] & { _id: Id }>>;
 };
-export interface Remove {
-    (collection: string, id: Id): Promise<void>;
+export interface Update<T extends DBTypes> {
+    <C extends keyof T>(collection: C, id: Id, row: T[C]): Promise<void>;
+};
+export interface Remove<T extends DBTypes> {
+    <C extends keyof T>(collection: C, id: Id): Promise<void>;
 };
 
-export type API = {
-    file: (url: string) => File,
-    insert: Insert,
-    select: Select,
-    update: Update,
-    remove: Remove,
-}
+export type DBTypes = { [collection: string]: Row };
+export interface API<T extends DBTypes> {
+    file: (base64: string) => File;
+    insert: Insert<T>;
+    select: Select<T>;
+    selectArray: SelectArray<T>;
+    update: Update<T>;
+    remove: Remove<T>;
+};
+
 
 type Configuration = {
     server: string,
     token: null | string,
 };
 
-export default function easyDBClient(configuration: Partial<Configuration>): API {
+export default function easyDBClient<T extends DBTypes>(configuration: Partial<Configuration>): API<T> {
     const conf: Configuration = {
         server: "http://localhost:80/",
         token: null,
         ...configuration,
     };
 
-    const insert: Insert = async (collection, row) => {
+    const insert: Insert<T> = async (collection, row) => {
         if (typeof row === "function") {
-            const id = await insert(collection, {});
+            const id = await insert(collection, {} as any);
             await update(collection, id, row(id));
-    
+
             return id;
         } else {
-            const url = `${conf.server}api/${collection}`;
+            const url = `${conf.server}api/${collection.toString()}`;
             const response = await fetch(url, {
                 method: "POST",
                 headers: getHeaders(conf),
                 body: JSON.stringify(row),
             });
             const id = await response.json();
-    
+
             if (typeof id === "string") {
                 return id;
             } else {
@@ -75,7 +82,7 @@ export default function easyDBClient(configuration: Partial<Configuration>): API
         }
     };
 
-    const select: Select = async (collection: string, idOrQuery?: string | Query) => {
+    const select: Select<T> = async (collection: string, idOrQuery?: string | Query) => {
         let url = `${conf.server}api/${collection}`;
         if (typeof idOrQuery === "string") {
             // SelectRow
@@ -108,18 +115,24 @@ export default function easyDBClient(configuration: Partial<Configuration>): API
                 url += `?easy-db-client=true&query=${encodeURIComponent(JSON.stringify(idOrQuery))}`;
             }
         }
-    
+
         const response = await fetch(url, {
             method: "GET",
             headers: getHeaders(conf),
         });
         const data = await response.json();
-    
+
         return data;
     };
 
-    const update: Update = async (collection, id, row) => {
-        const url = `${conf.server}api/${collection}/${id}`;
+    const selectArray: SelectArray<T> = async (collection: string, query?: Query) => {
+        const data = await select(collection, query);
+
+        return Object.entries(data).map(([id, row]) => ({ ...row, _id: id }));
+    };
+
+    const update: Update<T> = async (collection, id, row) => {
+        const url = `${conf.server}api/${collection.toString()}/${id}`;
         const response = await fetch(url, {
             method: "PUT",
             headers: getHeaders(conf),
@@ -127,8 +140,8 @@ export default function easyDBClient(configuration: Partial<Configuration>): API
         });
     };
 
-    const remove: Remove = async (collection, id) => {
-        const url = `${conf.server}api/${collection}/${id}`;
+    const remove: Remove<T> = async (collection, id) => {
+        const url = `${conf.server}api/${collection.toString()}/${id}`;
         const response = await fetch(url, {
             method: "DELETE",
             headers: getHeaders(conf),
@@ -139,12 +152,13 @@ export default function easyDBClient(configuration: Partial<Configuration>): API
         file,
         insert,
         select,
+        selectArray,
         update,
         remove
     };
 }
 
-function file(url: string): File {
+export function file(url: string): File {
     return {
         id: null,
         type: "EASY_DB_FILE",

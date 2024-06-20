@@ -1,6 +1,6 @@
 {
   "name": "easy-db-react-native",
-  "version": "2.4.0",
+  "version": "3.0.0",
   "description": "Lite&easy database for react-native.",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^1.23.1",
-    "easy-db-core": "^2.4.0"
+    "easy-db-core": "^3.0.0"
   },
   "keywords": [
     "easy&lite",

@@ -1,11 +1,11 @@
 import Cache from "./cache";
 import { addToQueue } from "./queue";
-import { getRandomId } from "./common";
+import { getFreeId } from "./common";
 import { getFile, replaceFileData, removeUpdatedFiles, File, FileData, FILE_COLLECTION } from "./file";
 
 export type Id = string;
 export type Row<T = any> = Record<string, T>;
-export type Data<T extends Row = Row<any>> = Record<string, T>;
+export type Data<T extends Row = Row<any>> = Record<Id, T>;
 
 export interface Backend {
     /**
@@ -28,27 +28,32 @@ interface BackendInternal {
     saveFile?: (base46: string) => Promise<string>;
     removeFile?: (path: string) => Promise<void>;
 }
-export interface API {
+export type DBTypes = { [collection: string]: Row };
+export interface API<T extends DBTypes> {
     file: (base64: string) => File;
-    insert: Insert;
-    select: Select;
-    update: Update;
-    remove: Remove;
+    insert: Insert<T>;
+    select: Select<T>;
+    selectArray: SelectArray<T>;
+    update: Update<T>;
+    remove: Remove<T>;
 };
 
 export { File } from "./file";
-export interface Insert {
-    (collection: string, row: Row | ((id: Id) => Row)): Promise<string>;
+export interface Insert<T extends DBTypes> {
+    <C extends keyof T>(collection: C, row: T[C] | ((id: Id) => T[C])): Promise<string>;
 };
-export interface Select {
-    <T extends Row>(collection: string): Promise<Data<T>>;
-    <T extends Row>(collection: string, id: string): Promise<null | T>;
+export interface Select<T extends DBTypes> {
+    <C extends keyof T>(collection: C): Promise<Record<Id, T[C]>>;
+    <C extends keyof T>(collection: C, id: string): Promise<null | T[C] & { _id: Id }>;
 };
-export interface Update {
-    (collection: string, id: Id, row: Row): Promise<void>;
+export interface SelectArray<T extends DBTypes> {
+    <C extends keyof T>(collection: C): Promise<Array<T[C] & { _id: Id }>>;
 };
-export interface Remove {
-    (collection: string, id: Id): Promise<void>;
+export interface Update<T extends DBTypes> {
+    <C extends keyof T>(collection: C, id: Id, row: T[C]): Promise<void>;
+};
+export interface Remove<T extends DBTypes> {
+    <C extends keyof T>(collection: C, id: Id): Promise<void>;
 };
 
 
@@ -79,10 +84,7 @@ async function setData(backend: BackendInternal, collectionName: string, data: D
 async function insert(backend: BackendInternal, collection: string, row: Row | ((id: Id) => Row)): Promise<Id> {
     const wholeCollection = await getData(backend, collection);
 
-    let newId = getRandomId();
-    while (newId in wholeCollection) {
-        newId = getRandomId();
-    }
+    const newId = getFreeId(wholeCollection);
 
     row = typeof row === "function" ? row(newId) : row;
 
@@ -106,7 +108,7 @@ async function insert(backend: BackendInternal, collection: string, row: Row | (
     return newId;
 }
 async function queueInsert(backend: BackendInternal, collection: string, row: Row | ((id: Id) => Row)): Promise<Id> {
-    backend.queue = addToQueue(backend.queue, async () => await insert(backend, collection, row));
+    backend.queue = addToQueue(backend.queue, async () => await insert(backend, collection as string, row));
     return await backend.queue;
 }
 
@@ -117,24 +119,26 @@ async function select(backend: BackendInternal, collection: string, id: null | I
         return wholeCollection;
     } else {
         if (id in wholeCollection) {
-            return wholeCollection[id];
+            return { ...wholeCollection[id], _id: id };
         } else {
             return null;
         }
     }
 }
-async function queueSelect(backend: BackendInternal, collection: string, id: null | Id): Promise<null | Row> {
+async function queueSelect<T>(backend: BackendInternal, collection: string, id: null | Id): Promise<null | T> {
     backend.queue = addToQueue(backend.queue, async () => await select(backend, collection, id));
     return await backend.queue;
 }
 
 async function update(backend: BackendInternal, collection: string, id: Id, row: Row) {
+    const { _id, ...rowWithoutId } = row;
+
     const wholeCollection = await getData(backend, collection);
     if (typeof backend.saveFile === "function" && typeof backend.removeFile === "function") {
         const fileData = await getData(backend, FILE_COLLECTION) as FileData;
 
         const isFileDataChangedWithReplace = await replaceFileData(
-            row,
+            rowWithoutId,
             collection,
             id,
             fileData,
@@ -142,7 +146,7 @@ async function update(backend: BackendInternal, collection: string, id: Id, row:
         );
         const isFileDataChangedWithRemove = await removeUpdatedFiles(
             wholeCollection[id],
-            row,
+            rowWithoutId,
             id,
             collection,
             fileData,
@@ -152,7 +156,7 @@ async function update(backend: BackendInternal, collection: string, id: Id, row:
             await setData(backend, FILE_COLLECTION, fileData);
         }
     }
-    wholeCollection[id] = row;
+    wholeCollection[id] = rowWithoutId;
     await setData(backend, collection, wholeCollection);
 }
 async function queueUpdate(backend: BackendInternal, collection: string, id: Id, row: Row) {
@@ -193,7 +197,7 @@ export { getRandomId, isBase64 } from "./common";
 export { addToQueue } from "./queue";
 export { getFile as file } from "./file";
 
-export default (backend: Backend): API => {
+export default <T extends DBTypes>(backend: Backend): API<T> => {
     const { cacheExpirationTime, ...intersection } = backend;
     const backendInternal: BackendInternal = {
         ...intersection,
@@ -207,17 +211,22 @@ export default (backend: Backend): API => {
         file(base64: string): File {
             return getFile(base64);
         },
-        async insert(collection: string, row: Row | ((id: Id) => Row)) {
-            return await queueInsert(backendInternal, collection, row);
+        async insert(collection, row) {
+            return await queueInsert(backendInternal, collection as string, row);
         },
-        async select(collection: string, id?: Id) {
-            return await queueSelect(backendInternal, collection, typeof id === "string" ? id : null);
+        async select(collection, id?: string) {
+            return await queueSelect(backendInternal, collection as string, typeof id === "string" ? id : null) as any;
         },
-        async update(collection: string, id: Id, row: Row) {
-            return await queueUpdate(backendInternal, collection, id, row);
+        async selectArray(collection) {
+            const data = await queueSelect(backendInternal, collection as string, null);
+            if (!data) return [];
+            return Object.entries(data).map(([_id, row]) => ({ ...row, _id })) as any[];
         },
-        async remove(collection: string, id: Id) {
-            return await queueRemove(backendInternal, collection, id);
+        async update(collection, id, row) {
+            return await queueUpdate(backendInternal, collection as string, id, row);
+        },
+        async remove(collection, id) {
+            return await queueRemove(backendInternal, collection as string, id);
         },
     };
 };

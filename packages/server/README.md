@@ -85,6 +85,9 @@ app.listen(80);
 - `PATCH /api/:collection/:id`: update row (shallow merge) from collection by id
 - `DELETE /api/:collection/:id`: remove whole row from collection by id
 
+### Easy-db API
+- `GET /api/easy-db-collections`: return names of collections 
+
 ### Token
 
 Use header `Easy-DB-Token` for your token.

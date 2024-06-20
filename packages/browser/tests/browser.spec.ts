@@ -5,7 +5,9 @@ import { assert } from "chai";
 
 import easyDB from "../src/index";
 
-const { insert, select, update, remove } = easyDB();
+type DB = { test: { myFirst: number, second?: number } };
+
+const { insert, select, update, remove } = easyDB<DB>();
 
 describe('Easy DB', () => {
     it('db API', () => {
@@ -28,14 +30,14 @@ describe('Easy DB', () => {
     it('select', async () => {
         const id = await insert("test", { myFirst: 2 });
         const data = await select("test", id);
-        assert.deepEqual(data, { myFirst: 2 });
+        assert.deepEqual(data, { _id: id, myFirst: 2 });
     });
 
     it('update', async () => {
         const id = await insert("test", { myFirst: 1 });
         await update("test", id, { myFirst: 25, second: 1 });
         const data = await select("test", id);
-        assert.deepEqual(data, { myFirst: 25, second: 1 });
+        assert.deepEqual(data, { _id: id, myFirst: 25, second: 1 });
     });
 
     it('remove', async () => {

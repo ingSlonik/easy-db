@@ -1,11 +1,11 @@
-import easyDB, { Data } from "easy-db-core";
+import easyDB, { Data, DBTypes } from "easy-db-core";
 
 const prefix = "easy-db-";
 
 type Configuration = {};
 
-export default function easyDBBrowser(configuration?: Configuration) {
-    return easyDB({
+export default function easyDBBrowser<T extends DBTypes>(configuration?: Configuration) {
+    return easyDB<T>({
         async saveCollection(name: string, data: Data) {
             localStorage.setItem(`${prefix}${name}`, JSON.stringify(data));
         },

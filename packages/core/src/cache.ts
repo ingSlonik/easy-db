@@ -1,4 +1,4 @@
-import type { Data, Backend } from "./";
+import type { Data, Backend } from ".";
 
 type KeyCache = {
     ref: {},

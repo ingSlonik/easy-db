@@ -1,11 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import easyDB, { Data } from "easy-db-core";
+import easyDB, { Data, DBTypes } from "easy-db-core";
 
 const prefix = "@easy-db:";
 
-export default function easyDBReactNative(conf?: {}) {
-    return easyDB({
+export default function easyDBReactNative<T extends DBTypes>(conf?: {}) {
+    return easyDB<T>({
         async saveCollection(name: string, data: Data) {
             // v2 await AsyncStorage.setItem(`@${prefix}${name}`, JSON.stringify(data));
             await AsyncStorage.setItem(`${prefix}${name}`, JSON.stringify(data));

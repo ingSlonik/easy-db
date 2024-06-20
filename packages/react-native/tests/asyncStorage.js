@@ -23,7 +23,7 @@ const AsyncStorage = {
 // mock require for "@react-native-async-storage/async-storage"
 Module.prototype.require = function (name) {
     if (name === "@react-native-async-storage/async-storage") {
-        return { default: AsyncStorage };
+        return AsyncStorage;
     } else {
         const nameToLoad = Module._resolveFilename(name, this);
         return Module._load(nameToLoad, this);

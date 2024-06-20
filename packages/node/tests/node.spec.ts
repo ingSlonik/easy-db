@@ -3,11 +3,29 @@ import { resolve } from "path";
 
 import { assert } from "chai";
 
-import easyDB, { defaultBackupConfiguration, getDayDate } from "../src/index";
+import easyDB, { defaultBackupConfiguration, getDayDate, file, File } from "../src/index";
+
+type TextDB = {
+    test: {
+        id?: string,
+        name?: string,
+        myFirst?: number,
+        second?: number,
+        photo?: File,
+        picture?: File,
+        backupTest?: number,
+        text?: string,
+        "async"?: boolean,
+    },
+    "test-damaged": {
+        fixed: string,
+    }
+};
 
 const { writeFile, readdir, unlink } = promises;
 
 const DUMMY_FILE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+const DUMMY_FILE_2 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAA1JREFUGFdjMPyg/R8ABO4CTAkxw14AAAAASUVORK5CYII=";
 
 async function timeout(ms: number): Promise<void> {
     return new Promise((resolve) => {
@@ -15,18 +33,20 @@ async function timeout(ms: number): Promise<void> {
     });
 }
 
-const { insert, select, update, remove, file } = easyDB({
+let backupName = "keep";
+
+const { insert, select, update, remove } = easyDB<TextDB>({
     fileFolder: "./files",
     fileUrl: "./files",
     backupFolder: "backup",
     backup: {
-        getActualName: () => "keep",
-        keepName: name => name === "keep",
+        getActualName: () => backupName,
+        keepName: name => name === "keep" || name === backupName,
     },
 });
 
 const cacheExpirationTime = 500;
-const { insert: insertCache, select: selectCache } = easyDB({ cacheExpirationTime, backup: false });
+const { insert: insertCache, select: selectCache, update: updateCache } = easyDB<TextDB>({ cacheExpirationTime, backup: false });
 
 describe('Easy DB', () => {
     it('db API', () => {
@@ -49,14 +69,14 @@ describe('Easy DB', () => {
     it('select', async () => {
         const id = await insert("test", { myFirst: 2 });
         const data = await select("test", id);
-        assert.deepEqual(data, { myFirst: 2 });
+        assert.deepEqual(data, { _id: id, myFirst: 2 });
     });
 
     it('update', async () => {
         const id = await insert("test", { myFirst: 1 });
         await update("test", id, { myFirst: 25, second: 1 });
         const data = await select("test", id);
-        assert.deepEqual(data, { myFirst: 25, second: 1 });
+        assert.deepEqual(data, { _id: id, myFirst: 25, second: 1 });
     });
 
     it('remove', async () => {
@@ -73,8 +93,8 @@ describe('Easy DB', () => {
             photo: file(DUMMY_FILE),
         });
         const data = await select("test", id);
-        assert.isString(data?.photo.url);
-        assert.notEqual(data?.photo.url, DUMMY_FILE);
+        assert.isString(data?.photo?.url);
+        assert.notEqual(data?.photo?.url, DUMMY_FILE);
         await remove("test", id);
     });
 
@@ -85,10 +105,10 @@ describe('Easy DB', () => {
             photo: file(DUMMY_FILE),
         });
         const data = await select("test", id);
-        assert.isString(data?.photo.url);
-        assert.notEqual(data?.photo.url, DUMMY_FILE, "First file is not converted.");
-        assert.isString(data?.picture.url);
-        assert.notEqual(data?.picture.url, DUMMY_FILE, "Second file is not converted.");
+        assert.isString(data?.photo?.url);
+        assert.notEqual(data?.photo?.url, DUMMY_FILE, "First file is not converted.");
+        assert.isString(data?.picture?.url);
+        assert.notEqual(data?.picture?.url, DUMMY_FILE, "Second file is not converted.");
         await remove("test", id);
     });
 
@@ -98,7 +118,7 @@ describe('Easy DB', () => {
             photo: file(DUMMY_FILE),
         });
         const data = await select("test", id);
-        const filePath = resolve(data?.photo.url)
+        const filePath = resolve(data?.photo?.url || "")
         assert.isTrue(existsSync(filePath), "File is not it not in file system.");
         await remove("test", id);
     });
@@ -109,25 +129,62 @@ describe('Easy DB', () => {
             photo: file(DUMMY_FILE),
         });
         const data = await select("test", id);
-        const fileBase64 = readFileSync(resolve(data?.photo.url), "base64");
+        assert.notEqual(data?.photo?.url, DUMMY_FILE);
+        const fileBase64 = readFileSync(resolve(data?.photo?.url || ""), "base64");
         assert.equal(fileBase64, DUMMY_FILE.substr(22));
         await remove("test", id);
     });
 
-    it('update file', async () => {
+    it('update file to undefined', async () => {
         const id = await insert("test", {
             name: "Example User",
             photo: file(DUMMY_FILE),
         });
+        const rowWithFile = await select("test", id);
+        assert.isTrue(existsSync(resolve(rowWithFile?.photo?.url || "")), "File is not saved");
+
         await update("test", id, {
             name: "Example User",
-            photo: "no picture",
+            photo: undefined,
+        });
+        const rowWithoutFile = await select("test", id);
+        assert.deepEqual(rowWithoutFile?.photo, undefined);
+        assert.isFalse(existsSync(resolve(rowWithFile?.photo?.url || "")), "File is not removed after update");
+        await remove("test", id);
+    });
+
+    it('update row with remove file', async () => {
+        const id = await insert("test", {
+            name: "Example User",
+            photo: file(DUMMY_FILE),
         });
         const data = await select("test", id);
-        assert.deepEqual(data, {
+        await update("test", id, {
             name: "Example User",
-            photo: "no picture",
+            photo: file(DUMMY_FILE_2),
         });
+        assert.isFalse(existsSync(resolve(data?.photo?.url || "")), "File is not removed after update");
+        await remove("test", id);
+    });
+    it('update row with keep file', async () => {
+        const id = await insert("test", {
+            name: "Example User",
+            photo: file(DUMMY_FILE),
+        });
+        const row = await select("test", id);
+        const id2 = await insert("test", {
+            name: "Example User 2",
+            photo: row?.photo,
+        });
+        await update("test", id, {
+            name: "Example User",
+            photo: file(DUMMY_FILE_2),
+        });
+        const data = await select("test", id);
+        assert.isTrue(existsSync(resolve(row?.photo?.url || "")), "Old file is not keeped after update");
+        assert.isTrue(existsSync(resolve(data?.photo?.url || "")), "New file is not keeped after update");
+        await remove("test", id);
+        await remove("test", id2);
     });
 
     it('remove file', async () => {
@@ -135,9 +192,12 @@ describe('Easy DB', () => {
             name: "Example User",
             photo: file(DUMMY_FILE),
         });
+        const row = await select("test", id);
+        assert.isTrue(existsSync(resolve(row?.photo?.url || "")), "File is not saved");
         await remove("test", id);
         const data = await select("test", id);
         assert.deepEqual(data, null);
+        assert.isFalse(existsSync(resolve(row?.photo?.url || "")), "File is not removed after remove row");
     });
 
     it('keep damaged db files', async () => {
@@ -157,9 +217,33 @@ describe('Easy DB', () => {
         assert.lengthOf(files.filter(file => file.includes("test-damaged")), 2);
     });
 
+    it('read and write data async', async () => {
+        await Promise.all(Array.from({ length: 21 }).map((_, i) => {
+            switch (i % 3) {
+                case 0: return select("test");
+                case 1: return insert("test", (id) => ({ id, async: true }));
+                case 2: return update("test", "async-test", { async: true });
+            }
+        }));
+
+        assert.ok(true, "TODO: projel jsem to.");
+    });
+    it('read and write data async with cache', async () => {
+        await Promise.all(Array.from({ length: 21 }).map((_, i) => {
+            switch (i % 3) {
+                case 0: return selectCache("test");
+                case 1: return insertCache("test", (id) => ({ id, async: true }));
+                case 2: return updateCache("test", "async-test", { async: true });
+            }
+        }));
+
+        assert.ok(true, "TODO: projel jsem to.");
+    });
+
     it('create backup', async () => {
+        backupName = "keep2";
         const backupPath = resolve(__dirname, "..", "backup");
-        const backupFile = resolve(backupPath, "keep.zip");
+        const backupFile = resolve(backupPath, "keep2.zip");
 
         if (existsSync(backupFile))
             await unlink(backupFile);
@@ -167,6 +251,7 @@ describe('Easy DB', () => {
         await insert("test", { backupTest: 1 });
 
         assert.isTrue(existsSync(backupFile), "Backup is not created.");
+        backupName = "keep";
     });
 
     it('remove old backup', async () => {

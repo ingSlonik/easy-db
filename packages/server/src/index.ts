@@ -81,7 +81,7 @@ export function useEasyDB<T extends DBTypes>(app: Express, configuration: Partia
         let query = null;
         try {
             query = getJSON(req.query["query"]);
-        } catch (e) {
+        } catch (e: any) {
             res.status(400);
             res.send(`Parameter query is not valid: ${e.message}`);
             return;
@@ -90,7 +90,7 @@ export function useEasyDB<T extends DBTypes>(app: Express, configuration: Partia
         let projection = null;
         try {
             projection = getJSON(req.query["projection"]);
-        } catch (e) {
+        } catch (e: any) {
             res.status(400);
             res.send(`Parameter projection is not valid: ${e.message}`);
             return;
@@ -99,7 +99,7 @@ export function useEasyDB<T extends DBTypes>(app: Express, configuration: Partia
         let sort = null;
         try {
             sort = getJSON(req.query["sort"]);
-        } catch (e) {
+        } catch (e: any) {
             res.status(400);
             res.send(`Parameter sort is not valid: ${e.message}`);
             return;
@@ -108,7 +108,7 @@ export function useEasyDB<T extends DBTypes>(app: Express, configuration: Partia
         let skip = null;
         try {
             skip = getNumber(req.query["skip"]);
-        } catch (e) {
+        } catch (e: any) {
             res.status(400);
             res.send(`Parameter skip is not valid: ${e.message}`);
             return;
@@ -117,7 +117,7 @@ export function useEasyDB<T extends DBTypes>(app: Express, configuration: Partia
         let limit = null;
         try {
             limit = getNumber(req.query["limit"]);
-        } catch (e) {
+        } catch (e: any) {
             res.status(400);
             res.send(`Parameter limit is not valid: ${e.message}`);
             return;
@@ -127,7 +127,7 @@ export function useEasyDB<T extends DBTypes>(app: Express, configuration: Partia
 
             const dataForQuery = await selectArray(collection);
 
-            const cursor = new Query(query || {}).find<{ _id: string }>(dataForQuery, projection);
+            const cursor = new Query(query || {}).find<{ _id: string }>(dataForQuery, projection || undefined);
 
             if (sort !== null)
                 cursor.sort(sort);
@@ -141,7 +141,7 @@ export function useEasyDB<T extends DBTypes>(app: Express, configuration: Partia
             const filteredData = cursor.all();
 
             if (req.query["easy-db-client"] === "true") {
-                const easyDbData = {};
+                const easyDbData: Record<string, any> = {};
                 filteredData.forEach(({ _id, ...row }) => easyDbData[_id] = row);
 
                 res.type("json");

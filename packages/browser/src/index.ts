@@ -11,6 +11,7 @@ export default function easyDBBrowser<T extends DBTypes>(configuration?: Configu
         },
         async loadCollection(name: string): Promise<null | Data> {
             const content = localStorage.getItem(`${prefix}${name}`);
+            if (content === null) return null;
             try {
                 const data = JSON.parse(content);
                 if (data !== null && typeof data === "object") {

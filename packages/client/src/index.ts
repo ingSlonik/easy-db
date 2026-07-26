@@ -4,7 +4,7 @@ export type Row<T = any> = { [key: string]: T };
 export type Data<T extends Row = Row<any>> = { [id: string]: T };
 
 export type File = {
-    id?: string,
+    id?: string | null,
     type: "EASY_DB_FILE",
     url: string,
 };

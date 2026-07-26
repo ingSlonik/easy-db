@@ -13,6 +13,7 @@ export default function easyDBReactNative<T extends DBTypes>(conf?: {}) {
         async loadCollection(name: string): Promise<null | Data> {
             // v2 const content = await AsyncStorage.getItem(`@${prefix}${name}`);
             const content = await AsyncStorage.getItem(`${prefix}${name}`);
+            if (content === null) return null;
             try {
                 const data = JSON.parse(content);
                 if (data !== null && typeof data === "object") {

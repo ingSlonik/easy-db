@@ -4,3 +4,4 @@ node_modules/
 .nx/
 .nx/cache
 .nx/workspace-data
+package-lock.json

@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "crypto";
 import { parse } from "path";
 import express, { Express } from "express";
 import cors from "cors";
@@ -6,6 +7,15 @@ import { Query } from "mingo";
 import easyDBNode, { DBTypes, NodeAPI, Configuration as ConfigurationNode } from "easy-db-node";
 
 export { default as express } from "express";
+
+const VALID_PARAM_REGEX = /^[a-zA-Z0-9_-]+$/;
+
+function safeCompareToken(a: string, b: string): boolean {
+    const bufA = Buffer.from(a);
+    const bufB = Buffer.from(b);
+    if (bufA.length !== bufB.length) return false;
+    return timingSafeEqual(bufA, bufB);
+}
 
 export type Configuration = {
     /** 0 - no verbose, 1 - one request one line */
@@ -55,7 +65,7 @@ export function useEasyDB<T extends DBTypes>(app: Express, configuration: Partia
             if (
                 req.method === "OPTIONS" ||
                 !req.path.startsWith("/api") ||
-                (typeof tokenFromHeader === "string" && tokenFromHeader === conf.token)
+                (typeof tokenFromHeader === "string" && safeCompareToken(tokenFromHeader, conf.token as string))
             ) {
                 next();
             } else {
@@ -64,6 +74,24 @@ export function useEasyDB<T extends DBTypes>(app: Express, configuration: Partia
             }
         });
     }
+
+    app.use("/api/:collection", (req, res, next) => {
+        const { collection } = req.params;
+        if (collection && collection !== "easy-db-collections" && !VALID_PARAM_REGEX.test(collection)) {
+            res.status(400).send("Invalid collection name.");
+            return;
+        }
+        next();
+    });
+
+    app.use("/api/:collection/:id", (req, res, next) => {
+        const { id } = req.params;
+        if (id && !VALID_PARAM_REGEX.test(id)) {
+            res.status(400).send("Invalid row id.");
+            return;
+        }
+        next();
+    });
 
     app.get("/api/easy-db-collections", async (req, res) => {
         const files = await getFileNames("collection");

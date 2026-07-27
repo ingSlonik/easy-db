@@ -289,6 +289,13 @@ describe('Easy DB server', () => {
         });
     });
 
+    it('reject invalid collection name with HTTP 400 (path traversal protection)', (done) => {
+        http().get("/api/..%2F..%2Fetc%2Fpasswd").set("Easy-DB-Token", TOKEN).end((err, res) => {
+            assert.equal(res.status, 400);
+            done();
+        });
+    });
+
     after(() => {
         server.close(() => {
             console.log("Server closed.");

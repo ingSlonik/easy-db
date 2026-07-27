@@ -85,6 +85,8 @@ app.listen(80);
 - `PATCH /api/:collection/:id`: update row (shallow merge) from collection by id
 - `DELETE /api/:collection/:id`: remove whole row from collection by id
 
+> **Note:** Collection names and row IDs must match `^[a-zA-Z0-9_-]+$` (alphanumeric characters, dashes, and underscores). Paths containing path traversal sequences or special characters (e.g. `/`, `..`) are rejected with HTTP 400.
+
 ### Easy-db API
 - `GET /api/easy-db-collections`: return names of collections 
 

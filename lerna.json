@@ -4,5 +4,10 @@
   "npmClient": "npm",
   "packages": [
     "packages/*"
-  ]
+  ],
+  "command": {
+    "version": {
+      "skipLock": true
+    }
+  }
 }

@@ -1,6 +1,6 @@
 {
   "name": "easy-db-node",
-  "version": "3.0.1",
+  "version": "3.1.0",
   "description": "Lite&easy database for Node.js.",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -21,7 +21,7 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
-    "easy-db-core": "^3.0.1",
+    "easy-db-core": "^3.1.0",
     "jszip": "^3.10.1",
     "mime-db": "^1.54.0"
   },

@@ -1,9 +1,9 @@
 import type { Data, Backend } from ".";
 
 type KeyCache = {
-    ref: {},
-    inNotSavedData: boolean,
-    timer: NodeJS.Timeout,
+    data: Data;
+    inNotSavedData: boolean;
+    timer: ReturnType<typeof setTimeout>;
 };
 
 export default class Cache {
@@ -11,7 +11,6 @@ export default class Cache {
     private loadData: Backend["loadCollection"];
     private saveData: Backend["saveCollection"];
 
-    private weakMap: WeakMap<{}, Data>;
     private keys: Record<string, KeyCache>;
 
     constructor(expirationTime: number, loadData: Backend["loadCollection"], saveData: Backend["saveCollection"]) {
@@ -19,54 +18,86 @@ export default class Cache {
         this.loadData = loadData;
         this.saveData = saveData;
 
-        this.weakMap = new WeakMap();
         this.keys = {};
 
         this.preventLosingCache();
     }
 
     private preventLosingCache() {
-        if (process && typeof process.on === "function") {
-            // Nodejs
-            process.on("beforeExit", async (code) => {
-                console.log("Easy-db: Saving all cached data with exit code:", code);
-                await this.saveAllDataInCache();
+        const flush = async () => {
+            await this.saveAllDataInCache();
+        };
+
+        if (typeof process !== "undefined" && typeof process.on === "function") {
+            // Node.js environment
+            process.on("beforeExit", () => {
+                void flush();
+            });
+            process.on("SIGINT", () => {
+                flush().finally(() => process.exit(0));
+            });
+            process.on("SIGTERM", () => {
+                flush().finally(() => process.exit(0));
+            });
+        }
+
+        if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+            // Browser environment
+            window.addEventListener("beforeunload", () => {
+                void flush();
+            });
+            window.addEventListener("pagehide", () => {
+                void flush();
             });
         }
     }
 
-    private async saveAllDataInCache() {
-        for (const key in this.keys) {
+    public async saveAllDataInCache() {
+        for (const key of Object.keys(this.keys)) {
             const keyCache = this.keys[key];
-            if (keyCache.inNotSavedData)
-                await this.removeCache(key);
+            if (keyCache && keyCache.inNotSavedData) {
+                await this.flushKey(key);
+            }
         }
     }
 
     private getCachedData(key: string): null | Data {
         if (key in this.keys) {
-            return this.weakMap.get(this.keys[key].ref) || null;
+            const keyCache = this.keys[key];
+            // Refresh timer on read access
+            this.resetTimer(key);
+            return keyCache.data;
         } else {
             return null;
         }
     }
 
+    private resetTimer(key: string) {
+        if (key in this.keys) {
+            clearTimeout(this.keys[key].timer);
+            this.keys[key].timer = setTimeout(() => {
+                this.removeCache(key).catch(err => {
+                    console.error(`Easy-db: Failed to flush expired cache for "${key}":`, err);
+                });
+            }, this.expirationTime);
+        }
+    }
+
     private setCachedData(key: string, data: Data, inNotSavedData: boolean) {
         if (key in this.keys) {
-            const keyCache = this.keys[key];
-            keyCache.inNotSavedData = inNotSavedData;
-            this.weakMap.set(keyCache.ref, data);
-        } else {
-            const ref = {};
-            const timer = setTimeout(() => this.removeCache(key), this.expirationTime);
-            this.keys[key] = { ref, inNotSavedData, timer };
-            this.weakMap.set(ref, data);
+            clearTimeout(this.keys[key].timer);
         }
+        const timer = setTimeout(() => {
+            this.removeCache(key).catch(err => {
+                console.error(`Easy-db: Failed to flush expired cache for "${key}":`, err);
+            });
+        }, this.expirationTime);
+
+        this.keys[key] = { data, inNotSavedData, timer };
     }
 
     private removeKeyCache(key: string) {
         if (key in this.keys) {
-            this.weakMap.delete(this.keys[key].ref);
             clearTimeout(this.keys[key].timer);
             delete this.keys[key];
         }
@@ -89,22 +120,24 @@ export default class Cache {
         this.setCachedData(key, data, true);
     }
 
+    private async flushKey(key: string) {
+        const keyCache = this.keys[key];
+        if (keyCache && keyCache.inNotSavedData) {
+            const dataToSave = keyCache.data;
+            keyCache.inNotSavedData = false;
+            await this.saveData(key, dataToSave);
+        }
+    }
+
     async removeCache(key: string) {
         if (key in this.keys) {
             const keyCache = this.keys[key];
             if (keyCache.inNotSavedData) {
-                const cachedData = this.weakMap.get(keyCache.ref) || null;
-                if (cachedData) {
-                    this.removeKeyCache(key);
-                    await this.saveData(key, cachedData);
-                    // cachedData are current set them for next period
-                    this.setCachedData(key, cachedData, false);
-                } else {
-                    throw new Error("Unreachable.");
-                }
-            } else {
-                this.removeKeyCache(key);
+                await this.flushKey(key);
             }
+            // Always remove key from memory upon expiration so GC can reclaim RAM
+            this.removeKeyCache(key);
         }
     }
 }
+

@@ -377,4 +377,36 @@ describe('Easy DB Core', () => {
         assert.isObject(data.object);
     });
 
+    it('queue resets to null after completion for insert, update, remove, and select', async () => {
+        let savedData: Data = {};
+        const easyDB = easyDBCore<{ test: { a: number } }>({
+            async saveCollection(name: string, data: Data) { savedData = data; },
+            async loadCollection(name: string): Promise<null | Data> { return savedData; },
+        });
+
+        const id = await easyDB.insert("test", { a: 1 });
+        await easyDB.update("test", id, { a: 2 });
+        const selected = await easyDB.select("test", id);
+        assert.equal(selected?.a, 2);
+
+        await easyDB.remove("test", id);
+        const afterRemove = await easyDB.select("test", id);
+        assert.equal(afterRemove, null);
+    });
+
+    it('cache evicts memory after expiration', async () => {
+        let saveCalls = 0;
+        const easyDB = easyDBCore<{ test: { b: number } }>({
+            cacheExpirationTime: 50,
+            async saveCollection(name: string, data: Data) { saveCalls++; },
+            async loadCollection(name: string): Promise<null | Data> { return {}; },
+        });
+
+        await easyDB.insert("test", { b: 2 });
+        assert.equal(saveCalls, 0, "Not saved before expiration");
+        
+        await new Promise(r => setTimeout(r, 100));
+        assert.equal(saveCalls, 1, "Saved and evicted after expiration");
+    });
 });
+

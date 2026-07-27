@@ -207,18 +207,22 @@ export async function removeUpdatedFiles(
                 const use = fileRow.use.filter(use => !(use.collection === collection && use.rowId === rowId));
 
                 if (use.length === 0) {
-                    // remove file only when is not used
+                    // remove file non-blockingly when it is no longer used
                     isFileDataRefChanged = true;
                     delete fileDataRef[id];
-                    removeFile(oldFile.url);
+                    removeFile(oldFile.url).catch(err => {
+                        console.error(`Easy-db: Failed to remove unused file "${oldFile.url}":`, err);
+                    });
                 } else {
                     // if file is used in other collection/worId keep file
                     isFileDataRefChanged = true;
                     fileDataRef[id] = { ...fileRow, use };
                 }
             } else {
-                // remove file without FileRow
-                removeFile(oldFile.url);
+                // remove file without FileRow non-blockingly
+                removeFile(oldFile.url).catch(err => {
+                    console.error(`Easy-db: Failed to remove file "${oldFile.url}":`, err);
+                });
             }
         }
     }

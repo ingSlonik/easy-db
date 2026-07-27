@@ -107,9 +107,26 @@ async function insert(backend: BackendInternal, collection: string, row: Row | (
 
     return newId;
 }
+/**
+ * Helper to queue database operations sequentially per backend instance.
+ * Automatically clears the queue reference once the promise completes and no newer operations
+ * were enqueued. This prevents an infinite promise chain in memory, allowing Garbage Collection
+ * to reclaim memory from past operation closures and data structures.
+ */
+async function runInQueue<R>(backend: BackendInternal, fn: () => Promise<R>): Promise<R> {
+    const promise = addToQueue(backend.queue, fn);
+    backend.queue = promise;
+    try {
+        return await promise;
+    } finally {
+        if (backend.queue === promise) {
+            backend.queue = null;
+        }
+    }
+}
+
 async function queueInsert(backend: BackendInternal, collection: string, row: Row | ((id: Id) => Row)): Promise<Id> {
-    backend.queue = addToQueue(backend.queue, async () => await insert(backend, collection as string, row));
-    return await backend.queue;
+    return runInQueue(backend, async () => await insert(backend, collection, row));
 }
 
 async function select(backend: BackendInternal, collection: string, id: null | Id): Promise<null | Row | Data> {
@@ -126,8 +143,7 @@ async function select(backend: BackendInternal, collection: string, id: null | I
     }
 }
 async function queueSelect<T>(backend: BackendInternal, collection: string, id: null | Id): Promise<null | T> {
-    backend.queue = addToQueue(backend.queue, async () => await select(backend, collection, id));
-    return await backend.queue;
+    return runInQueue(backend, async () => await select(backend, collection, id)) as unknown as null | T;
 }
 
 async function update(backend: BackendInternal, collection: string, id: Id, row: Row) {
@@ -160,8 +176,7 @@ async function update(backend: BackendInternal, collection: string, id: Id, row:
     await setData(backend, collection, wholeCollection);
 }
 async function queueUpdate(backend: BackendInternal, collection: string, id: Id, row: Row) {
-    backend.queue = addToQueue(backend.queue, async () => await update(backend, collection, id, row));
-    return await backend.queue;
+    return runInQueue(backend, async () => await update(backend, collection, id, row));
 }
 
 async function remove(backend: BackendInternal, collection: string, id: Id) {
@@ -188,8 +203,7 @@ async function remove(backend: BackendInternal, collection: string, id: Id) {
     await setData(backend, collection, wholeCollection);
 }
 async function queueRemove(backend: BackendInternal, collection: string, id: Id) {
-    backend.queue = addToQueue(backend.queue, async () => await remove(backend, collection, id));
-    return await backend.queue;
+    return runInQueue(backend, async () => await remove(backend, collection, id));
 }
 
 // export easyDB core

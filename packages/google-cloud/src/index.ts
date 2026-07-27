@@ -122,7 +122,6 @@ function readFile(file: File): Promise<Buffer> {
         file.createReadStream()
             .on("error", err => reject(err))
             .on("data", chunk => buffers.push(chunk))
-            .on("end", () => resolve(Buffer.concat(buffers)))
-            .read();
+            .on("end", () => resolve(Buffer.concat(buffers)));
     });
 }

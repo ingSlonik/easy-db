@@ -304,4 +304,24 @@ describe('Easy DB', () => {
         const rowAfter = await select("test", id);
         assert.equal(rowAfter?.text, "Cached", "Collection was not saved after cacheExpirationTime.");
     });
+
+    it('file write awaits completion', async () => {
+        const id = await insert("test", {
+            name: "Immediate File Test",
+            photo: file(DUMMY_FILE_2),
+        });
+        const row = await select("test", id);
+        assert.isDefined(row?.photo?.url);
+        const filePath = resolve("./files", row!.photo!.url.replace("./files/", ""));
+        assert.isTrue(existsSync(filePath), "File was not written to disk immediately after insert resolved.");
+        await remove("test", id);
+    });
+
+    it('atomic write leaves no temp files', async () => {
+        await insert("test", { text: "Atomic Test" });
+        const files = await readdir(resolve(__dirname, "..", "easy-db"));
+        const tmpFiles = files.filter(f => f.endsWith(".tmp"));
+        assert.equal(tmpFiles.length, 0, "Temporary write files (.tmp) were left on disk.");
+    });
 });
+

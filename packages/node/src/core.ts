@@ -162,9 +162,8 @@ function getTwoDigits(number: number): string {
 }
 
 // parser for most popular extensions
-const regexMimeType = new RegExp("^data:(.*);base64,", "gi");
+const regexMimeType = new RegExp("^data:(.*);base64,", "i");
 function getFileExtension(base64: string): string {
-    regexMimeType.lastIndex = 0;
     const result = regexMimeType.exec(base64);
     if (result && result[1]) {
         return getExtension(result[1]);

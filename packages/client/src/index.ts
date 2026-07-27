@@ -60,12 +60,18 @@ export default function easyDBClient<T extends DBTypes>(configuration: Partial<C
         ...configuration,
     };
 
+    const serverUrl = conf.server.endsWith("/") ? conf.server : `${conf.server}/`;
+
     const getCollections = async () => {
-        const url = `${conf.server}api/easy-db-collections`;
+        const url = `${serverUrl}api/easy-db-collections`;
         const response = await fetch(url, {
             method: "GET",
             headers: getHeaders(conf),
         });
+        if (!response.ok) {
+            const text = await response.text().catch(() => "");
+            throw new Error(`EasyDB Client HTTP ${response.status} ${response.statusText}: ${text}`);
+        }
         const collections = await response.json();
 
         if (Array.isArray(collections)) {
@@ -82,12 +88,16 @@ export default function easyDBClient<T extends DBTypes>(configuration: Partial<C
 
             return id;
         } else {
-            const url = `${conf.server}api/${collection.toString()}`;
+            const url = `${serverUrl}api/${collection.toString()}`;
             const response = await fetch(url, {
                 method: "POST",
                 headers: getHeaders(conf),
                 body: JSON.stringify(row),
             });
+            if (!response.ok) {
+                const text = await response.text().catch(() => "");
+                throw new Error(`EasyDB Client HTTP ${response.status} ${response.statusText}: ${text}`);
+            }
             const id = await response.json();
 
             if (typeof id === "string") {
@@ -99,7 +109,7 @@ export default function easyDBClient<T extends DBTypes>(configuration: Partial<C
     };
 
     const select: Select<T> = async (collection: string, idOrQuery?: string | Query) => {
-        let url = `${conf.server}api/${collection}`;
+        let url = `${serverUrl}api/${collection}`;
         if (typeof idOrQuery === "string") {
             // SelectRow
             url += `/${idOrQuery}`;
@@ -136,32 +146,45 @@ export default function easyDBClient<T extends DBTypes>(configuration: Partial<C
             method: "GET",
             headers: getHeaders(conf),
         });
+        if (!response.ok) {
+            const text = await response.text().catch(() => "");
+            throw new Error(`EasyDB Client HTTP ${response.status} ${response.statusText}: ${text}`);
+        }
         const data = await response.json();
 
         return data;
     };
 
     const selectArray: SelectArray<T> = async (collection: string, query?: Query) => {
-        const data = await select(collection, query);
+        const data = query ? await select(collection, query) : await select(collection);
+        if (!data || typeof data !== "object") return [];
 
         return Object.entries(data).map(([id, row]) => ({ ...row, _id: id }));
     };
 
     const update: Update<T> = async (collection, id, row) => {
-        const url = `${conf.server}api/${collection.toString()}/${id}`;
+        const url = `${serverUrl}api/${collection.toString()}/${id}`;
         const response = await fetch(url, {
             method: "PUT",
             headers: getHeaders(conf),
             body: JSON.stringify(row),
         });
+        if (!response.ok) {
+            const text = await response.text().catch(() => "");
+            throw new Error(`EasyDB Client HTTP ${response.status} ${response.statusText}: ${text}`);
+        }
     };
 
     const remove: Remove<T> = async (collection, id) => {
-        const url = `${conf.server}api/${collection.toString()}/${id}`;
+        const url = `${serverUrl}api/${collection.toString()}/${id}`;
         const response = await fetch(url, {
             method: "DELETE",
             headers: getHeaders(conf),
         });
+        if (!response.ok) {
+            const text = await response.text().catch(() => "");
+            throw new Error(`EasyDB Client HTTP ${response.status} ${response.statusText}: ${text}`);
+        }
     };
 
     return {
